@@ -252,43 +252,63 @@
 
         // --- РЕНДЕР ІНТЕРФЕЙСУ ---
         function renderUpgrades() {
-            els.upgradesContainer.innerHTML = '';
+            // 1. Створюємо HTML структуру лише один раз (якщо її ще немає)
+            if (els.upgradesContainer.children.length === 0) {
+                upgrades.forEach(upg => {
+                    const btn = document.createElement('button');
+                    btn.id = `upgrade-btn-${upg.id}`;
+                    btn.onclick = () => buyUpgrade(upg.id);
+                    
+                    btn.innerHTML = `
+                        <div class="flex items-center gap-4 flex-1">
+                            <div id="upgrade-icon-bg-${upg.id}" class="p-3 rounded-full flex items-center justify-center w-12 h-12">
+                                <i class="fa-solid ${upg.icon} ${upg.color} text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-lg leading-tight">${upg.name}</h3>
+                                <p class="text-xs opacity-75 mt-1">${upg.desc}</p>
+                                <p class="text-sm font-semibold mt-1">
+                                    ${upg.type === 'click' ? `+${upg.effect} за клік` : `+${upg.effect} в сек`}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="text-right ml-4 min-w-[80px]">
+                            <div id="upgrade-cost-${upg.id}" class="font-bold text-lg"></div>
+                            <div id="upgrade-level-${upg.id}" class="text-sm opacity-60"></div>
+                        </div>
+                    `;
+                    els.upgradesContainer.appendChild(btn);
+                });
+            }
+
+            // 2. Просто оновлюємо класи та текст у існуючих кнопок
             upgrades.forEach(upg => {
                 const cost = getCost(upg);
                 const canAfford = state.crumbs >= cost;
                 
-                // Визначаємо стилі в залежності від теми (звичайна чи Ілля)
+                const btn = document.getElementById(`upgrade-btn-${upg.id}`);
+                const iconBg = document.getElementById(`upgrade-icon-bg-${upg.id}`);
+                const costDiv = document.getElementById(`upgrade-cost-${upg.id}`);
+                const levelDiv = document.getElementById(`upgrade-level-${upg.id}`);
+                
+                // Визначаємо стилі в залежності від теми
                 const bgClass = canAfford 
                     ? (state.ilyaActive ? 'bg-green-800 border-green-600 hover:bg-green-700 text-green-50' : 'bg-white border-amber-300 hover:border-amber-500 hover:shadow-md cursor-pointer') 
                     : (state.ilyaActive ? 'bg-green-950/50 border-green-900 opacity-60 text-green-200 cursor-not-allowed' : 'bg-amber-50 border-amber-100 opacity-60 cursor-not-allowed');
 
-                const iconBg = state.ilyaActive ? 'bg-green-900' : 'bg-amber-100';
+                const iconBgClass = state.ilyaActive ? 'bg-green-900' : 'bg-amber-100';
                 const costColor = canAfford ? (state.ilyaActive ? 'text-green-300' : 'text-amber-600') : 'text-gray-400';
 
-                const btn = document.createElement('button');
+                // Застосовуємо оновлення
                 btn.className = `flex items-center justify-between p-3 rounded-lg border-2 transition-all text-left w-full ${bgClass}`;
                 btn.disabled = !canAfford;
-                btn.onclick = () => buyUpgrade(upg.id);
 
-                btn.innerHTML = `
-                    <div class="flex items-center gap-4 flex-1">
-                        <div class="p-3 rounded-full flex items-center justify-center w-12 h-12 ${iconBg}">
-                            <i class="fa-solid ${upg.icon} ${upg.color} text-xl"></i>
-                        </div>
-                        <div>
-                            <h3 class="font-bold text-lg leading-tight">${upg.name}</h3>
-                            <p class="text-xs opacity-75 mt-1">${upg.desc}</p>
-                            <p class="text-sm font-semibold mt-1">
-                                ${upg.type === 'click' ? `+${upg.effect} за клік` : `+${upg.effect} в сек`}
-                            </p>
-                        </div>
-                    </div>
-                    <div class="text-right ml-4 min-w-[80px]">
-                        <div class="font-bold text-lg ${costColor}">${cost.toLocaleString()}</div>
-                        <div class="text-sm opacity-60">Рів: ${upg.count}</div>
-                    </div>
-                `;
-                els.upgradesContainer.appendChild(btn);
+                iconBg.className = `p-3 rounded-full flex items-center justify-center w-12 h-12 ${iconBgClass}`;
+                
+                costDiv.className = `font-bold text-lg ${costColor}`;
+                costDiv.innerText = cost.toLocaleString();
+
+                levelDiv.innerText = `Рів: ${upg.count}`;
             });
         }
 
