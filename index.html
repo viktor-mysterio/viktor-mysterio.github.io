@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Головна сторінка Viktor Mysterio</title>
+    <style>
+        /* Основні стилі для сторінки для центрування */
+        body {
+            font-family: sans-serif;
+            background-color: #f4f4f9; /* Світлий фон */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        h1 {
+           color: #4a3b32;
+           margin-bottom: 30px;
+        }
+
+        /* --- Стилі для Кнопки-Горобчика --- */
+        .sparrow-button {
+            /* Розміри та відступи */
+            display: inline-flex;
+            align-items: center;
+            padding: 15px 35px;
+            
+            /* Кольори "горобчика" - коричневий градієнт */
+            background: linear-gradient(to bottom, #8B5A2B, #5E3B1F);
+            color: #FFE4C4; /* Світло-бежевий текст */
+            
+            /* Типографіка та вигляд */
+            text-decoration: none;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 50px; /* Сильне заокруглення */
+            border: 2px solid #4a2e16; /* Темна обводка, як дзьоб */
+            
+            /* Тінь для об'єму */
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            
+            /* Плавність анімації */
+            transition: all 0.3s ease;
+        }
+
+        /* Іконка всередині кнопки */
+        .sparrow-icon {
+            margin-right: 10px;
+            font-size: 1.5rem;
+        }
+
+        /* Ефект при наведенні мишки */
+        .sparrow-button:hover {
+            background: linear-gradient(to bottom, #A06B35, #6F4625); /* Трохи світліше */
+            box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+            transform: translateY(-5px); /* "Підстрибування" вгору */
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Привіт! Мої проекти:</h1>
+
+    <a href="/horobchyky/" class="sparrow-button">
+        <span class="sparrow-icon">🐦</span>
+        Грати в "Горобчики"
+    </a>
+
+</body>
+</html>
