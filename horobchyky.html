@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ДВІР: Горобчачі історії</title>
+    <!-- Tailwind CSS для стилізації -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome для іконок -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+        
+        body {
+            font-family: 'Nunito', sans-serif;
+            user-select: none;
+        }
+
+        /* Анімація для вилітаючих цифр */
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-100px) scale(1.5); opacity: 0; }
+        }
+
+        .floating-text {
+            position: fixed;
+            pointer-events: none;
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: #f59e0b; /* amber-500 */
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+            animation: floatUp 1s ease-out forwards;
+            z-index: 50;
+        }
+
+        /* Анімація для головної пташки */
+        .bird-click-effect {
+            transform: scale(0.9);
+            transition: transform 0.05s;
+        }
+
+        .bird-idle {
+            transition: transform 0.2s;
+        }
+        
+        /* Плавний перехід кольорів теми */
+        .theme-transition {
+            transition: background-color 1s ease, color 1s ease, border-color 1s ease;
+        }
+    </style>
+</head>
+<body class="bg-amber-50 text-amber-950 theme-transition min-h-screen" id="app-body">
+
+    <!-- Header -->
+    <header id="app-header" class="p-4 shadow-md text-center border-b-4 bg-amber-200 border-amber-400 theme-transition">
+        <h1 class="text-3xl font-bold mb-2 uppercase tracking-wider flex justify-center items-center gap-2">
+            <i class="fa-solid fa-tree"></i> ДВІР: Горобчачі історії <i class="fa-solid fa-tree"></i>
+        </h1>
+        <div class="flex justify-center gap-8 text-xl font-semibold">
+            <div class="flex items-center gap-2">
+                <span class="text-amber-600" id="crumbs-label">Крихти:</span> 
+                <span id="crumbs-display" class="font-black text-2xl">0</span>
+            </div>
+            <div class="flex items-center gap-2 text-sm opacity-80 pt-1">
+                <span id="cps-display">0</span> крихт/сек
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto p-4 grid grid-cols-1 md:grid-cols-2 gap-8 mt-4 relative">
+        
+        <!-- Ліва колонка: Двір (Клікер) -->
+        <div class="flex flex-col items-center justify-start space-y-8 relative">
+            
+            <!-- Головна зона кліку -->
+            <div 
+                id="main-click-area"
+                class="w-64 h-64 md:w-80 md:h-80 rounded-full shadow-2xl flex items-center justify-center cursor-pointer transform hover:scale-105 transition-transform select-none relative bg-amber-300 shadow-amber-600/50 hover:bg-amber-400 theme-transition mt-8"
+            >
+                <i id="main-icon" class="fa-solid fa-dove text-9xl text-amber-800 theme-transition"></i>
+                
+                <p id="main-text" class="absolute bottom-8 font-bold opacity-70">
+                    Клікай сюди!
+                </p>
+            </div>
+
+            <div class="text-center opacity-75 max-w-sm">
+                <p class="italic">"Нам двадцять, нам тридцять, роки летять, а я згадую нас, тих малих хлоп'ят..."</p>
+            </div>
+
+            <!-- Кнопка фіналу (Ілля) -->
+            <div class="w-full mt-auto pt-8">
+                <button
+                    id="ilya-upgrade-btn"
+                    class="w-full p-6 rounded-xl border-4 text-left transition-all relative overflow-hidden border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed"
+                >
+                    <div class="flex items-start gap-4">
+                        <div class="bg-black/10 p-4 rounded-full flex items-center justify-center">
+                            <i id="ilya-icon" class="fa-solid fa-flag text-2xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold mb-1">Генерал Ілля (Штаб Ватаги)</h3>
+                            <p id="ilya-desc" class="text-sm">Любив грати у війнушки, бути головним. Збере ватагу на епічну битву! (Дохід x3)</p>
+                        </div>
+                    </div>
+                    <div id="ilya-cost" class="absolute top-4 right-4 font-black text-lg">
+                        100,000 крихт
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Права колонка: Магазин покращень -->
+        <div id="upgrades-panel" class="rounded-xl p-4 h-[80vh] overflow-y-auto shadow-inner border-2 bg-amber-100/50 border-amber-200 theme-transition">
+            <h2 class="text-2xl font-bold mb-4 border-b-2 border-current pb-2 flex items-center gap-2">
+                <i class="fa-regular fa-sun"></i> Наш Двір (Покращення)
+            </h2>
+            
+            <div id="upgrades-container" class="flex flex-col gap-3">
+                <!-- Апгрейди будуть додані через JS -->
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Модальне вікно Міні-гри "Баба Зоя" -->
+    <div id="baba-zoya-modal" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center hidden backdrop-blur-sm">
+        <div class="bg-red-50 text-red-900 w-11/12 max-w-md p-6 rounded-2xl shadow-2xl border-4 border-red-500 relative overflow-hidden">
+            <div class="text-center mb-6">
+                <i class="fa-solid fa-person-cane text-6xl text-red-600 mb-2 animate-bounce"></i>
+                <h2 class="text-3xl font-black uppercase text-red-700">Баба Зоя йде!</h2>
+                <p class="font-bold mt-2">Пасивний дохід ЗУПИНЕНО!</p>
+                <p class="text-sm mt-1 opacity-80">Доведи свою спритність: злови кнопку 10 разів, щоб втекти!</p>
+            </div>
+
+            <!-- Прогрес бар -->
+            <div class="w-full bg-red-200 rounded-full h-4 mb-4">
+                <div id="escape-progress" class="bg-red-600 h-4 rounded-full transition-all duration-200" style="width: 0%"></div>
+            </div>
+            <p class="text-center font-bold mb-4">Спіймано: <span id="escape-count">0</span> / 10</p>
+
+            <!-- Зона для міні-гри -->
+            <div class="relative w-full h-48 bg-red-100 rounded-lg border-2 border-red-300 overflow-hidden" id="mini-game-area">
+                <button 
+                    id="escape-btn"
+                    class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full shadow-lg transition-all"
+                >
+                    Втекти!
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальне вікно "Епічна Битва" -->
+    <div id="battle-modal" class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center hidden backdrop-blur-md">
+        <div class="bg-green-50 text-green-900 w-11/12 max-w-lg p-8 rounded-2xl shadow-[0_0_50px_rgba(34,197,94,0.5)] border-4 border-green-500 relative overflow-hidden text-center">
+            <h2 class="text-4xl font-black uppercase text-green-700 mb-2">Епічна Війнушка!</h2>
+            <p class="font-bold text-xl mb-4">Сусідський двір викликав вас на бій!</p>
+            <p class="mb-6 opacity-80">Клікай по кнопці максимально швидко (50 разів за 10 сек), щоб перемогти!</p>
+
+            <div class="text-5xl font-black mb-4 text-red-600" id="battle-timer">10.0s</div>
+
+            <div class="w-full bg-green-200 rounded-full h-6 mb-6 relative overflow-hidden">
+                <div id="battle-progress" class="bg-green-600 h-6 transition-all duration-75" style="width: 0%"></div>
+            </div>
+
+            <button id="battle-hit-btn" class="bg-red-600 hover:bg-red-500 text-white font-black text-2xl py-6 px-12 rounded-full shadow-xl transform active:scale-95 transition-transform w-full">
+                АТАКА! (<span id="battle-clicks">0</span>/50)
+            </button>
+        </div>
+    </div>
+
+    <!-- Модальне вікно "Перемога" -->
+    <div id="victory-modal" class="fixed inset-0 bg-amber-100/95 z-50 flex items-center justify-center hidden backdrop-blur-md">
+        <div class="text-center max-w-2xl p-8">
+            <i class="fa-solid fa-crown text-8xl text-yellow-500 mb-6 drop-shadow-lg"></i>
+            <h2 class="text-5xl font-black uppercase text-amber-800 mb-6">Двір Наш!</h2>
+            <p class="text-2xl font-bold mb-4">Ви перемогли сусідських хлопців і стали легендою району.</p>
+            <p class="text-lg italic opacity-80 mb-8">"Дитинство пішло... Але дружба живе. І цей двір назавжди залишиться вашим у спогадах."</p>
+            <button onclick="document.getElementById('victory-modal').classList.add('hidden')" class="bg-yellow-500 hover:bg-yellow-400 text-yellow-900 font-bold py-3 px-8 rounded-full text-xl shadow-lg transition-all">
+                Продовжити грати (Дохід x10)
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- СТАН ГРИ ---
+        let state = {
+            crumbs: 0,
+            totalCrumbs: 0,
+            babaZoyaActive: false,
+            ilyaActive: false,
+            escapeClicks: 0,
+            escapeTarget: 10,
+            battleWon: false
+        };
+
+        const INITIAL_UPGRADES = [
+            { id: 'swords', name: 'Уявні мечі', baseCost: 15, effect: 1, type: 'click', desc: 'Палки у руках — джедаї спокійні.', icon: 'fa-khanda', color: 'text-gray-600', count: 0 },
+            { id: 'vetal', name: 'Вєталь (Сальто)', baseCost: 50, effect: 2, type: 'idle', desc: 'Паркур по дворах залучає глядачів.', icon: 'fa-person-running', color: 'text-blue-500', count: 0 },
+            { id: 'anri', name: 'Анрі (Влад)', baseCost: 200, effect: 5, type: 'click', desc: "Носив горде ім'я, краще всіх грав.", icon: 'fa-medal', color: 'text-yellow-500', count: 0 },
+            { id: 'vitya', name: 'Вітя-Приколіст', baseCost: 500, effect: 15, type: 'idle', desc: 'Футбол не любив, але жартував так!', icon: 'fa-gamepad', color: 'text-green-500', count: 0 },
+            { id: 'k750', name: 'Sony Ericsson K750', baseCost: 1500, effect: 50, type: 'idle', desc: 'Саня монтував все підряд.', icon: 'fa-mobile-screen', color: 'text-gray-800', count: 0 },
+            { id: 'misha', name: 'Міша-Рокер', baseCost: 5000, effect: 200, type: 'idle', desc: 'Ракетку узяв, рок-зірку вдавав.', icon: 'fa-guitar', color: 'text-purple-500', count: 0 }
+        ];
+
+        let upgrades = JSON.parse(JSON.stringify(INITIAL_UPGRADES));
+
+        // --- ЕЛЕМЕНТИ DOM ---
+        const els = {
+            crumbsDisplay: document.getElementById('crumbs-display'),
+            cpsDisplay: document.getElementById('cps-display'),
+            mainClickArea: document.getElementById('main-click-area'),
+            upgradesContainer: document.getElementById('upgrades-container'),
+            ilyaUpgradeBtn: document.getElementById('ilya-upgrade-btn'),
+            ilyaIcon: document.getElementById('ilya-icon'),
+            ilyaCost: document.getElementById('ilya-cost'),
+            ilyaDesc: document.getElementById('ilya-desc'),
+            babaZoyaModal: document.getElementById('baba-zoya-modal'),
+            escapeBtn: document.getElementById('escape-btn'),
+            escapeProgress: document.getElementById('escape-progress'),
+            escapeCount: document.getElementById('escape-count'),
+            miniGameArea: document.getElementById('mini-game-area'),
+            
+            // Елементи для зміни теми
+            appBody: document.getElementById('app-body'),
+            appHeader: document.getElementById('app-header'),
+            crumbsLabel: document.getElementById('crumbs-label'),
+            mainIcon: document.getElementById('main-icon'),
+            mainText: document.getElementById('main-text'),
+            upgradesPanel: document.getElementById('upgrades-panel')
+        };
+
+        // --- ОБЧИСЛЕННЯ ---
+        function getCost(upgrade) {
+            return Math.floor(upgrade.baseCost * Math.pow(1.15, upgrade.count));
+        }
+
+        function getStats() {
+            let baseClick = 1 + upgrades.filter(u => u.type === 'click').reduce((acc, u) => acc + (u.effect * u.count), 0);
+            let baseCps = upgrades.filter(u => u.type === 'idle').reduce((acc, u) => acc + (u.effect * u.count), 0);
+            
+            // Якщо битва виграна - x10 бонус. Якщо лише Ілля - x3 бонус.
+            let multiplier = state.battleWon ? 10 : (state.ilyaActive ? 3 : 1);
+            
+            let cps = state.babaZoyaActive ? 0 : baseCps * multiplier;
+            let clickPower = (state.babaZoyaActive ? 1 : baseClick) * multiplier;
+
+            return { cps, clickPower };
+        }
+
+        // --- РЕНДЕР ІНТЕРФЕЙСУ ---
+        function renderUpgrades() {
+            els.upgradesContainer.innerHTML = '';
+            upgrades.forEach(upg => {
+                const cost = getCost(upg);
+                const canAfford = state.crumbs >= cost;
+                
+                // Визначаємо стилі в залежності від теми (звичайна чи Ілля)
+                const bgClass = canAfford 
+                    ? (state.ilyaActive ? 'bg-green-800 border-green-600 hover:bg-green-700 text-green-50' : 'bg-white border-amber-300 hover:border-amber-500 hover:shadow-md cursor-pointer') 
+                    : (state.ilyaActive ? 'bg-green-950/50 border-green-900 opacity-60 text-green-200 cursor-not-allowed' : 'bg-amber-50 border-amber-100 opacity-60 cursor-not-allowed');
+
+                const iconBg = state.ilyaActive ? 'bg-green-900' : 'bg-amber-100';
+                const costColor = canAfford ? (state.ilyaActive ? 'text-green-300' : 'text-amber-600') : 'text-gray-400';
+
+                const btn = document.createElement('button');
+                btn.className = `flex items-center justify-between p-3 rounded-lg border-2 transition-all text-left w-full ${bgClass}`;
+                btn.disabled = !canAfford;
+                btn.onclick = () => buyUpgrade(upg.id);
+
+                btn.innerHTML = `
+                    <div class="flex items-center gap-4 flex-1">
+                        <div class="p-3 rounded-full flex items-center justify-center w-12 h-12 ${iconBg}">
+                            <i class="fa-solid ${upg.icon} ${upg.color} text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-lg leading-tight">${upg.name}</h3>
+                            <p class="text-xs opacity-75 mt-1">${upg.desc}</p>
+                            <p class="text-sm font-semibold mt-1">
+                                ${upg.type === 'click' ? `+${upg.effect} за клік` : `+${upg.effect} в сек`}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="text-right ml-4 min-w-[80px]">
+                        <div class="font-bold text-lg ${costColor}">${cost.toLocaleString()}</div>
+                        <div class="text-sm opacity-60">Рів: ${upg.count}</div>
+                    </div>
+                `;
+                els.upgradesContainer.appendChild(btn);
+            });
+        }
+
+        function updateUI() {
+            const { cps } = getStats();
+            els.crumbsDisplay.innerText = Math.floor(state.crumbs).toLocaleString();
+            els.cpsDisplay.innerText = cps.toLocaleString();
+
+            // Оновлення кнопок апгрейдів (щоб не перемальовувати весь DOM, просто рендеримо заново для простоти)
+            // В ідеалі - оновлювати класи, але для гри такого масштабу innerHTML підходить
+            renderUpgrades();
+
+            // Оновлення кнопки Іллі
+            if (!state.ilyaActive) {
+                if (state.crumbs >= 100000) {
+                    els.ilyaUpgradeBtn.className = "w-full p-6 rounded-xl border-4 text-left transition-all relative overflow-hidden border-yellow-400 bg-gray-900 text-yellow-100 hover:bg-gray-800 cursor-pointer shadow-[0_0_15px_rgba(250,204,21,0.5)]";
+                    els.ilyaIcon.className = "fa-solid fa-flag text-2xl text-yellow-400";
+                    els.ilyaUpgradeBtn.disabled = false;
+                } else {
+                    els.ilyaUpgradeBtn.className = "w-full p-6 rounded-xl border-4 text-left transition-all relative overflow-hidden border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed";
+                    els.ilyaIcon.className = "fa-solid fa-flag text-2xl text-gray-400";
+                    els.ilyaUpgradeBtn.disabled = true;
+                }
+            } else if (!state.battleWon) {
+                // Стан: Ілля куплений, битва ще не виграна
+                els.ilyaUpgradeBtn.className = "w-full p-6 rounded-xl border-4 text-left transition-all relative overflow-hidden border-red-500 bg-red-900 text-red-100 hover:bg-red-800 cursor-pointer shadow-[0_0_15px_rgba(239,68,68,0.5)] animate-pulse";
+                els.ilyaIcon.className = "fa-solid fa-crosshairs text-2xl text-red-400";
+                els.ilyaCost.style.display = 'none';
+                els.ilyaUpgradeBtn.querySelector('h3').innerText = "ПОЧАТИ ЕПІЧНУ БИТВУ!";
+                els.ilyaDesc.innerText = "Сусідський двір наступає! Збери ватагу на вирішальний бій!";
+                els.ilyaUpgradeBtn.disabled = false;
+            } else {
+                // Стан: Битва виграна (Перемога)
+                els.ilyaUpgradeBtn.className = "w-full p-6 rounded-xl border-4 text-left transition-all relative overflow-hidden border-yellow-500 bg-yellow-900 text-yellow-200 cursor-default";
+                els.ilyaIcon.className = "fa-solid fa-crown text-2xl text-yellow-400";
+                els.ilyaCost.style.display = 'none';
+                els.ilyaUpgradeBtn.querySelector('h3').innerText = "Легенди Двору";
+                els.ilyaDesc.innerText = "Ви — Абсолютні Чемпіони району! (Дохід x10)";
+                els.ilyaUpgradeBtn.disabled = true;
+            }
+        }
+
+        // --- ЛОГІКА КЛІКУ ТА ПОКУПОК ---
+        function handleMainClick(e) {
+            const { clickPower } = getStats();
+            state.crumbs += clickPower;
+            state.totalCrumbs += clickPower;
+            
+            // Анімація пташки
+            els.mainClickArea.classList.add('scale-95');
+            setTimeout(() => els.mainClickArea.classList.remove('scale-95'), 100);
+
+            // Вилітаюча цифра
+            createFloatingText(e.clientX, e.clientY, `+${clickPower}`);
+            
+            updateUI();
+        }
+
+        function createFloatingText(x, y, text) {
+            const el = document.createElement('div');
+            el.className = 'floating-text';
+            // Якщо активовано Іллю, робимо цифри зеленими
+            if(state.ilyaActive) el.classList.add('text-green-500');
+            el.innerText = text;
+            
+            // Випадкове відхилення
+            const offsetX = (Math.random() - 0.5) * 40;
+            el.style.left = `${x - 20 + offsetX}px`;
+            el.style.top = `${y - 20}px`;
+            
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 1000);
+        }
+
+        function buyUpgrade(id) {
+            const upg = upgrades.find(u => u.id === id);
+            const cost = getCost(upg);
+            if (state.crumbs >= cost) {
+                state.crumbs -= cost;
+                upg.count += 1;
+                updateUI();
+            }
+        }
+
+        // --- МЕХАНІКА "ІЛЛЯ (ШТАБ)" ---
+        function activateIlya() {
+            if (state.crumbs >= 100000 && !state.ilyaActive) {
+                state.crumbs -= 100000;
+                state.ilyaActive = true;
+                state.babaZoyaActive = false; // Баба Зоя не лізе до Штабу
+                
+                // Зміна теми на військову/командирську (зелено-золота)
+                els.appBody.className = "bg-green-950 text-green-50 theme-transition min-h-screen";
+                els.appHeader.className = "p-4 shadow-md text-center border-b-4 bg-green-900 border-green-700 theme-transition";
+                els.crumbsLabel.className = "text-green-400";
+                
+                els.mainClickArea.className = "w-64 h-64 md:w-80 md:h-80 rounded-full shadow-2xl flex items-center justify-center cursor-pointer transform hover:scale-105 transition-transform select-none relative bg-green-800 shadow-green-500/50 mt-8 theme-transition";
+                els.mainIcon.className = "fa-solid fa-tent text-9xl text-green-300 theme-transition";
+                els.mainText.innerText = "Штаб працює!";
+                
+                els.upgradesPanel.className = "rounded-xl p-4 h-[80vh] overflow-y-auto shadow-inner border-2 bg-green-900/50 border-green-800 theme-transition";
+                
+                updateUI();
+            }
+        }
+
+        // --- МІНІ-ГРА "БАБА ЗОЯ" ---
+        function triggerBabaZoya() {
+            if (state.ilyaActive || state.babaZoyaActive) return;
+            
+            state.babaZoyaActive = true;
+            state.escapeClicks = 0;
+            
+            // Оновлюємо UI міні-гри
+            els.escapeCount.innerText = state.escapeClicks;
+            els.escapeProgress.style.width = '0%';
+            els.babaZoyaModal.classList.remove('hidden');
+            
+            moveEscapeButton();
+            updateUI(); // Зупиняє дохід на екрані
+        }
+
+        function moveEscapeButton() {
+            const area = els.miniGameArea;
+            const btn = els.escapeBtn;
+            
+            // Максимальні координати з урахуванням розміру кнопки
+            const maxX = area.clientWidth - btn.clientWidth;
+            const maxY = area.clientHeight - btn.clientHeight;
+            
+            const randomX = Math.max(0, Math.floor(Math.random() * maxX));
+            const randomY = Math.max(0, Math.floor(Math.random() * maxY));
+            
+            // Скасовуємо центрування
+            btn.classList.remove('top-1/2', 'left-1/2', '-translate-x-1/2', '-translate-y-1/2');
+            
+            btn.style.left = `${randomX}px`;
+            btn.style.top = `${randomY}px`;
+        }
+
+        function handleEscapeClick(e) {
+            e.stopPropagation(); // Щоб не спрацював клік по фону
+            state.escapeClicks += 1;
+            
+            els.escapeCount.innerText = state.escapeClicks;
+            els.escapeProgress.style.width = `${(state.escapeClicks / state.escapeTarget) * 100}%`;
+            
+            if (state.escapeClicks >= state.escapeTarget) {
+                // Успішна втеча!
+                state.babaZoyaActive = false;
+                els.babaZoyaModal.classList.add('hidden');
+                updateUI(); // Відновлюємо дохід
+            } else {
+                // Якщо ще не втекли, кнопка стрибає на нове місце
+                moveEscapeButton();
+            }
+        }
+
+        // --- МЕХАНІКА "ЕПІЧНА БИТВА" (ФІНАЛ) ---
+        let battleTimerInterval;
+        let battleTimeLeft = 10.0;
+        let currentBattleClicks = 0;
+        const BATTLE_TARGET = 50;
+
+        function handleIlyaBtnClick() {
+            if (!state.ilyaActive) {
+                activateIlya();
+            } else if (!state.battleWon) {
+                startBattle();
+            }
+        }
+
+        function startBattle() {
+            currentBattleClicks = 0;
+            battleTimeLeft = 10.0;
+            
+            document.getElementById('battle-timer').innerText = battleTimeLeft.toFixed(1) + 's';
+            document.getElementById('battle-progress').style.width = '0%';
+            document.getElementById('battle-clicks').innerText = '0';
+            
+            document.getElementById('battle-modal').classList.remove('hidden');
+            
+            // Запобігаємо подвійному запуску
+            clearInterval(battleTimerInterval);
+            
+            battleTimerInterval = setInterval(() => {
+                battleTimeLeft -= 0.1;
+                document.getElementById('battle-timer').innerText = battleTimeLeft.toFixed(1) + 's';
+                if (battleTimeLeft <= 0) {
+                    clearInterval(battleTimerInterval);
+                    endBattle(false);
+                }
+            }, 100);
+        }
+
+        document.getElementById('battle-hit-btn').addEventListener('click', (e) => {
+            if (battleTimeLeft <= 0) return;
+            
+            currentBattleClicks++;
+            document.getElementById('battle-clicks').innerText = currentBattleClicks;
+            document.getElementById('battle-progress').style.width = `${(currentBattleClicks / BATTLE_TARGET) * 100}%`;
+            
+            // Анімація кнопки атаки
+            const btn = document.getElementById('battle-hit-btn');
+            btn.classList.add('scale-95');
+            setTimeout(() => btn.classList.remove('scale-95'), 50);
+
+            if (currentBattleClicks >= BATTLE_TARGET) {
+                clearInterval(battleTimerInterval);
+                endBattle(true);
+            }
+        });
+
+        function endBattle(won) {
+            document.getElementById('battle-modal').classList.add('hidden');
+            if (won) {
+                state.battleWon = true;
+                document.getElementById('victory-modal').classList.remove('hidden');
+                updateUI();
+            } else {
+                alert("Ви не встигли! Ватага відступила, щоб набратися сил. Спробуйте ще раз, коли будете готові.");
+            }
+        }
+
+        // --- ІГРОВИЙ ЦИКЛ ---
+        setInterval(() => {
+            const { cps } = getStats();
+            if (cps > 0) {
+                // Додаємо 1/10 від CPS кожні 100мс для плавності
+                state.crumbs += cps / 10;
+                state.totalCrumbs += cps / 10;
+                updateUI();
+            }
+        }, 100);
+
+        // Випадкова подія Баби Зої (перевіряємо кожні 15 секунд, шанс 15%)
+        setInterval(() => {
+            if (Math.random() < 0.15) {
+                triggerBabaZoya();
+            }
+        }, 15000);
+
+        // --- ІНІЦІАЛІЗАЦІЯ ---
+        els.mainClickArea.addEventListener('click', handleMainClick);
+        els.ilyaUpgradeBtn.addEventListener('click', handleIlyaBtnClick);
+        els.escapeBtn.addEventListener('click', handleEscapeClick);
+        // Запобігаємо клікам повз кнопку в міні-грі (щоб не було занадто просто)
+        els.miniGameArea.addEventListener('click', () => {
+            // Можна додати штраф за промах, але залишимо поки лояльно
+        });
+
+        // Перший рендер
+        renderUpgrades();
+        updateUI();
+
+    </script>
+</body>
+</html>
