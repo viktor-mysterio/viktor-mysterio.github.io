@@ -184,6 +184,12 @@
         </div>
     </div>
 
+    <!-- Футер зі статусом збереження -->
+    <footer class="text-center mt-8 pb-4 opacity-60 text-sm flex justify-center items-center gap-4">
+        <span id="save-status">Автозбереження кожні 5 сек...</span>
+        <button onclick="resetGame()" class="underline hover:text-red-500 transition-colors">Скинути прогрес</button>
+    </footer>
+
     <script>
         // --- СТАН ГРИ ---
         let state = {
@@ -229,7 +235,10 @@
             crumbsLabel: document.getElementById('crumbs-label'),
             mainIcon: document.getElementById('main-icon'),
             mainText: document.getElementById('main-text'),
-            upgradesPanel: document.getElementById('upgrades-panel')
+            upgradesPanel: document.getElementById('upgrades-panel'),
+            
+            // Збереження
+            saveStatus: document.getElementById('save-status')
         };
 
         // --- ОБЧИСЛЕННЯ ---
@@ -394,24 +403,28 @@
         }
 
         // --- МЕХАНІКА "ІЛЛЯ (ШТАБ)" ---
+        function setIlyaTheme() {
+            els.appBody.className = "bg-green-950 text-green-50 theme-transition min-h-screen";
+            els.appHeader.className = "p-4 shadow-md text-center border-b-4 bg-green-900 border-green-700 theme-transition";
+            els.crumbsLabel.className = "text-green-400";
+            
+            els.mainClickArea.className = "w-64 h-64 md:w-80 md:h-80 rounded-full shadow-2xl flex items-center justify-center cursor-pointer transform hover:scale-105 transition-transform select-none relative bg-green-800 shadow-green-500/50 mt-8 theme-transition";
+            els.mainIcon.className = "fa-solid fa-tent text-9xl text-green-300 theme-transition";
+            els.mainText.innerText = "Штаб працює!";
+            
+            els.upgradesPanel.className = "rounded-xl p-4 h-[80vh] overflow-y-auto shadow-inner border-2 bg-green-900/50 border-green-800 theme-transition";
+        }
+
         function activateIlya() {
             if (state.crumbs >= 100000 && !state.ilyaActive) {
                 state.crumbs -= 100000;
                 state.ilyaActive = true;
                 state.babaZoyaActive = false; // Баба Зоя не лізе до Штабу
                 
-                // Зміна теми на військову/командирську (зелено-золота)
-                els.appBody.className = "bg-green-950 text-green-50 theme-transition min-h-screen";
-                els.appHeader.className = "p-4 shadow-md text-center border-b-4 bg-green-900 border-green-700 theme-transition";
-                els.crumbsLabel.className = "text-green-400";
-                
-                els.mainClickArea.className = "w-64 h-64 md:w-80 md:h-80 rounded-full shadow-2xl flex items-center justify-center cursor-pointer transform hover:scale-105 transition-transform select-none relative bg-green-800 shadow-green-500/50 mt-8 theme-transition";
-                els.mainIcon.className = "fa-solid fa-tent text-9xl text-green-300 theme-transition";
-                els.mainText.innerText = "Штаб працює!";
-                
-                els.upgradesPanel.className = "rounded-xl p-4 h-[80vh] overflow-y-auto shadow-inner border-2 bg-green-900/50 border-green-800 theme-transition";
+                setIlyaTheme();
                 
                 updateUI();
+                saveGame(); // Миттєво зберігаємо цей ключовий момент
             }
         }
 
@@ -528,6 +541,7 @@
                 state.battleWon = true;
                 document.getElementById('victory-modal').classList.remove('hidden');
                 updateUI();
+                saveGame(); // Зберігаємо перемогу
             } else {
                 alert("Ви не встигли! Ватага відступила, щоб набратися сил. Спробуйте ще раз, коли будете готові.");
             }
@@ -551,6 +565,69 @@
             }
         }, 15000);
 
+        // --- ЗБЕРЕЖЕННЯ ТА ЗАВАНТАЖЕННЯ ---
+        function saveGame() {
+            const savedData = {
+                state: {
+                    crumbs: state.crumbs,
+                    totalCrumbs: state.totalCrumbs,
+                    ilyaActive: state.ilyaActive,
+                    battleWon: state.battleWon
+                },
+                upgradeCounts: {} // Зберігаємо тільки рівні { "swords": 2, "vetal": 1 }
+            };
+            
+            upgrades.forEach(u => {
+                savedData.upgradeCounts[u.id] = u.count;
+            });
+            
+            localStorage.setItem('dvirSave', JSON.stringify(savedData));
+            
+            const now = new Date();
+            els.saveStatus.innerText = `Збережено о ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        }
+
+        function loadGame() {
+            const savedStr = localStorage.getItem('dvirSave');
+            if (savedStr) {
+                try {
+                    const savedData = JSON.parse(savedStr);
+                    
+                    // Відновлюємо базові параметри
+                    if (savedData.state) {
+                        state.crumbs = savedData.state.crumbs || 0;
+                        state.totalCrumbs = savedData.state.totalCrumbs || 0;
+                        state.ilyaActive = savedData.state.ilyaActive || false;
+                        state.battleWon = savedData.state.battleWon || false;
+                    }
+
+                    // Переносимо рівні прокачки (не затираючи нові апгрейди з оновлень)
+                    if (savedData.upgradeCounts) {
+                        upgrades.forEach(u => {
+                            u.count = savedData.upgradeCounts[u.id] || 0;
+                        });
+                    }
+
+                    // Відновлюємо вигляд Штабу
+                    if (state.ilyaActive) {
+                        setIlyaTheme();
+                    }
+                } catch (e) {
+                    console.error("Помилка завантаження прогресу:", e);
+                }
+            }
+        }
+
+        function resetGame() {
+            if (confirm("Ти дійсно хочеш скинути весь прогрес і почати спочатку?")) {
+                localStorage.removeItem('dvirSave');
+                location.reload();
+            }
+        }
+
+        // Автозбереження кожні 5 секунд
+        setInterval(saveGame, 5000);
+
         // --- ІНІЦІАЛІЗАЦІЯ ---
         els.mainClickArea.addEventListener('click', handleMainClick);
         els.ilyaUpgradeBtn.addEventListener('click', handleIlyaBtnClick);
@@ -559,6 +636,9 @@
         els.miniGameArea.addEventListener('click', () => {
             // Можна додати штраф за промах, але залишимо поки лояльно
         });
+
+        // Завантажуємо прогрес перед першим рендером
+        loadGame();
 
         // Перший рендер
         renderUpgrades();
