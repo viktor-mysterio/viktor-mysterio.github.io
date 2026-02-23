@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ДВІР: Горобчачі історії</title>
-    <!-- Tailwind CSS для стилізації -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome для іконок -->
+    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
@@ -15,9 +15,9 @@
         body {
             font-family: 'Nunito', sans-serif;
             user-select: none;
+            overflow-x: hidden;
         }
 
-        /* Анімація для вилітаючих цифр */
         @keyframes floatUp {
             0% { transform: translateY(0) scale(1); opacity: 1; }
             100% { transform: translateY(-100px) scale(1.5); opacity: 0; }
@@ -28,264 +28,194 @@
             pointer-events: none;
             font-size: 1.5rem;
             font-weight: 900;
-            color: #f59e0b; /* amber-500 */
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+            color: #f59e0b;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
             animation: floatUp 1s ease-out forwards;
             z-index: 50;
         }
-
-        /* Анімація для головної пташки */
-        .bird-click-effect {
-            transform: scale(0.9);
-            transition: transform 0.05s;
-        }
-
-        .bird-idle {
-            transition: transform 0.2s;
-        }
         
-        /* Плавний перехід кольорів теми */
         .theme-transition {
             transition: background-color 1s ease, color 1s ease, border-color 1s ease;
         }
+
+        /* Анімація для Голуба */
+        @keyframes pigeonPeck {
+            0%, 100% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(15deg) scale(1.1); }
+        }
+        .pecking { animation: pigeonPeck 0.5s infinite; }
     </style>
 </head>
 <body class="bg-amber-50 text-amber-950 theme-transition min-h-screen" id="app-body">
 
     <!-- Header -->
-    <header id="app-header" class="p-4 shadow-md text-center border-b-4 bg-amber-200 border-amber-400 theme-transition">
-        <h1 class="text-3xl font-bold mb-2 uppercase tracking-wider flex justify-center items-center gap-2">
-            <i class="fa-solid fa-tree"></i> ДВІР: Горобчачі історії <i class="fa-solid fa-tree"></i>
-        </h1>
-        <div class="flex justify-center gap-8 text-xl font-semibold">
-            <div class="flex items-center gap-2">
-                <span class="text-amber-600" id="crumbs-label">Крихти:</span> 
-                <span id="crumbs-display" class="font-black text-2xl">0</span>
+    <header id="app-header" class="p-4 shadow-md text-center border-b-4 bg-amber-200 border-amber-400 theme-transition flex flex-col md:flex-row justify-between items-center px-8 relative z-10">
+        <div class="flex items-center gap-4 hidden md:flex">
+            <button onclick="toggleCollectibles()" class="bg-white/50 hover:bg-white/80 p-2 rounded-full shadow transition-all">
+                <i class="fa-solid fa-box-open text-xl text-amber-700"></i> Схованка
+            </button>
+            <div id="memories-badge" class="hidden font-bold text-purple-700 bg-purple-100 px-3 py-1 rounded-full shadow">
+                <i class="fa-solid fa-star"></i> Спогади: <span id="memories-count">0</span>
             </div>
-            <div class="flex items-center gap-2 text-sm opacity-80 pt-1">
-                <span id="cps-display">0</span> крихт/сек
+        </div>
+
+        <div>
+            <h1 class="text-3xl font-bold mb-1 uppercase tracking-wider flex justify-center items-center gap-2">
+                <i class="fa-solid fa-tree"></i> ДВІР <i class="fa-solid fa-tree"></i>
+            </h1>
+            <div class="text-sm font-bold opacity-75" id="time-status">
+                <i class="fa-regular fa-sun"></i> Сонячний День (Клік x2)
+            </div>
+        </div>
+
+        <div class="flex flex-col items-center md:items-end mt-4 md:mt-0">
+            <div class="flex items-center gap-2 text-2xl">
+                <span class="text-amber-600 font-bold" id="crumbs-label">Крихти:</span> 
+                <span id="crumbs-display" class="font-black text-3xl drop-shadow-sm">0</span>
+            </div>
+            <div class="flex items-center gap-2 text-sm opacity-80 font-bold">
+                <span id="cps-display">0</span> в сек / <span id="cpc-display">1</span> за клік
             </div>
         </div>
     </header>
 
-    <main class="max-w-6xl mx-auto p-4 grid grid-cols-1 md:grid-cols-2 gap-8 mt-4 relative">
+    <main class="max-w-6xl mx-auto p-4 grid grid-cols-1 md:grid-cols-2 gap-8 mt-2 relative">
         
         <!-- Ліва колонка: Двір (Клікер) -->
-        <div class="flex flex-col items-center justify-start space-y-8 relative">
+        <div class="flex flex-col items-center justify-start space-y-4 relative">
             
+            <!-- Зона Синергій та Бонусів -->
+            <div id="synergy-panel" class="w-full flex justify-center gap-2 flex-wrap min-h-[40px]">
+                <!-- Сюди додаються бейджі синергій -->
+            </div>
+
             <!-- Головна зона кліку -->
             <div 
                 id="main-click-area"
-                class="w-64 h-64 md:w-80 md:h-80 rounded-full shadow-2xl flex items-center justify-center cursor-pointer transform hover:scale-105 transition-transform select-none relative bg-amber-300 shadow-amber-600/50 hover:bg-amber-400 theme-transition mt-8"
+                class="w-64 h-64 md:w-80 md:h-80 rounded-full shadow-2xl flex items-center justify-center cursor-pointer transform hover:scale-105 active:scale-95 transition-transform select-none relative bg-amber-300 shadow-amber-600/50 theme-transition mt-4 z-10"
             >
                 <i id="main-icon" class="fa-solid fa-dove text-9xl text-amber-800 theme-transition"></i>
-                
-                <p id="main-text" class="absolute bottom-8 font-bold opacity-70">
-                    Клікай сюди!
-                </p>
+                <p id="main-text" class="absolute bottom-8 font-bold opacity-70">Клікай сюди!</p>
+
+                <!-- Візуальний розвиток двору (з'являється при покупках) -->
+                <i id="vis-sword" class="fa-solid fa-khanda absolute -left-4 top-1/2 text-4xl text-gray-500 opacity-0 transition-opacity drop-shadow-md"></i>
+                <i id="vis-ball" class="fa-regular fa-futbol absolute -right-4 bottom-1/4 text-4xl text-white opacity-0 transition-opacity drop-shadow-md"></i>
+                <i id="vis-guitar" class="fa-solid fa-guitar absolute top-4 right-8 text-4xl text-purple-600 opacity-0 transition-opacity drop-shadow-md rotate-12"></i>
             </div>
 
-            <div class="text-center opacity-75 max-w-sm">
-                <p class="italic">"Нам двадцять, нам тридцять, роки летять, а я згадую нас, тих малих хлоп'ят..."</p>
+            <!-- Сповіщення про новий предмет -->
+            <div id="collectible-toast" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-yellow-100 border-4 border-yellow-400 text-yellow-800 font-black p-4 rounded-xl shadow-2xl z-50 text-center hidden animate-bounce pointer-events-none w-64">
+                <i class="fa-solid fa-gift text-4xl mb-2"></i><br>
+                Знайдено секрет!
             </div>
 
-            <!-- Кнопка фіналу (Ілля) -->
-            <div class="w-full mt-auto pt-8">
-                <button
-                    id="ilya-upgrade-btn"
-                    class="w-full p-6 rounded-xl border-4 text-left transition-all relative overflow-hidden border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed"
-                >
+            <!-- Кнопка фіналу / Престижу -->
+            <div class="w-full mt-auto pt-4">
+                <button id="ilya-upgrade-btn" class="w-full p-6 rounded-xl border-4 text-left transition-all relative overflow-hidden border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed shadow-md">
                     <div class="flex items-start gap-4">
                         <div class="bg-black/10 p-4 rounded-full flex items-center justify-center">
                             <i id="ilya-icon" class="fa-solid fa-flag text-2xl"></i>
                         </div>
                         <div>
-                            <h3 class="text-xl font-bold mb-1">Генерал Ілля (Штаб Ватаги)</h3>
-                            <p id="ilya-desc" class="text-sm">Любив грати у війнушки, бути головним. Збере ватагу на епічну битву! (Дохід x3)</p>
+                            <h3 id="ilya-title" class="text-xl font-bold mb-1">Генерал Ілля (Штаб)</h3>
+                            <p id="ilya-desc" class="text-sm">Любив грати у війнушки. Збере ватагу на епічну битву! (Дохід x3)</p>
                         </div>
                     </div>
-                    <div id="ilya-cost" class="absolute top-4 right-4 font-black text-lg">
-                        100,000 крихт
-                    </div>
+                    <div id="ilya-cost" class="absolute top-4 right-4 font-black text-lg">100,000 крихт</div>
                 </button>
             </div>
         </div>
 
         <!-- Права колонка: Магазин покращень -->
-        <div id="upgrades-panel" class="rounded-xl p-4 h-[80vh] overflow-y-auto shadow-inner border-2 bg-amber-100/50 border-amber-200 theme-transition">
+        <div id="upgrades-panel" class="rounded-xl p-4 h-[75vh] overflow-y-auto shadow-inner border-2 bg-amber-100/50 border-amber-200 theme-transition relative z-10">
             <h2 class="text-2xl font-bold mb-4 border-b-2 border-current pb-2 flex items-center gap-2">
-                <i class="fa-regular fa-sun"></i> Наш Двір (Покращення)
+                <i class="fa-solid fa-store"></i> Магазин Двору
             </h2>
-            
-            <div id="upgrades-container" class="flex flex-col gap-3">
-                <!-- Апгрейди будуть додані через JS -->
-            </div>
+            <div id="upgrades-container" class="flex flex-col gap-3"></div>
         </div>
-
     </main>
 
-    <!-- Модальне вікно Міні-гри "Баба Зоя" -->
-    <div id="baba-zoya-modal" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center hidden backdrop-blur-sm">
-        <div class="bg-red-50 text-red-900 w-11/12 max-w-md p-6 rounded-2xl shadow-2xl border-4 border-red-500 relative overflow-hidden">
-            <div class="text-center mb-6">
-                <i class="fa-solid fa-person-cane text-6xl text-red-600 mb-2 animate-bounce"></i>
-                <h2 class="text-3xl font-black uppercase text-red-700">Баба Зоя йде!</h2>
-                <p class="font-bold mt-2">Пасивний дохід ЗУПИНЕНО!</p>
-                <p class="text-sm mt-1 opacity-80">Доведи свою спритність: злови кнопку 10 разів, щоб втекти!</p>
-            </div>
+    <!-- МОДАЛЬНІ ВІКНА ПОДІЙ -->
 
-            <!-- Прогрес бар -->
-            <div class="w-full bg-red-200 rounded-full h-4 mb-4">
-                <div id="escape-progress" class="bg-red-600 h-4 rounded-full transition-all duration-200" style="width: 0%"></div>
-            </div>
-            <p class="text-center font-bold mb-4">Спіймано: <span id="escape-count">0</span> / 10</p>
-
-            <!-- Зона для міні-гри -->
-            <div class="relative w-full h-48 bg-red-100 rounded-lg border-2 border-red-300 overflow-hidden" id="mini-game-area">
-                <button 
-                    id="escape-btn"
-                    class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full shadow-lg transition-all"
-                >
-                    Втекти!
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Модальне вікно "Туалетна пригода" (Влад) -->
-    <div id="vlad-modal" class="fixed inset-0 bg-blue-900/80 z-50 flex items-center justify-center hidden backdrop-blur-sm">
-        <div class="bg-blue-50 text-blue-900 w-11/12 max-w-md p-6 rounded-2xl shadow-2xl border-4 border-blue-500 relative overflow-hidden text-center">
-            <i class="fa-solid fa-toilet text-6xl text-blue-600 mb-2 animate-bounce"></i>
-            <h2 class="text-3xl font-black uppercase text-blue-700">Туалетна пригода!</h2>
-            <p class="font-bold mt-2 text-lg">Владюсік провалився!</p>
-            <p class="mt-2 text-red-600 font-bold">Пасивний дохід впав на 50%!</p>
-            <p class="text-sm mt-1 opacity-80">Швидко клікай, щоб витягнути його (його затягує назад!)</p>
-
-            <div class="w-full bg-blue-200 rounded-full h-6 mb-6 mt-6 overflow-hidden">
-                <div id="vlad-progress" class="bg-blue-600 h-6 rounded-full transition-all duration-75" style="width: 0%"></div>
-            </div>
-
-            <button id="vlad-pull-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-full shadow-lg transition-all w-full text-xl active:scale-95">
-                ТЯГНУТИ!
-            </button>
-        </div>
-    </div>
-
-    <!-- Модальне вікно "Зимове лайно" (Санько) -->
-    <div id="sanya-modal" class="fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center hidden backdrop-blur-sm">
-        <div class="bg-slate-50 text-slate-900 w-11/12 max-w-md p-6 rounded-2xl shadow-2xl border-4 border-slate-500 relative overflow-hidden text-center">
-            <i class="fa-solid fa-poop text-6xl text-amber-700 mb-2"></i>
-            <h2 class="text-3xl font-black uppercase text-slate-700">Сюрприз від Санька</h2>
-            <p class="font-bold mt-2">Санько взимку вліз у лайно — ото сміх!</p>
-            <p class="text-sm mt-1 opacity-80 mb-6">Обери одну з кучугур. Тобі пощастить або... не дуже.</p>
-
-            <div id="sanya-boxes" class="grid grid-cols-3 gap-4">
-                <button onclick="handleSanyaChoice()" class="bg-white border-4 border-slate-200 hover:border-slate-400 rounded-xl p-6 transform hover:scale-105 transition-all">
-                    <i class="fa-solid fa-snowflake text-5xl text-blue-300"></i>
-                </button>
-                <button onclick="handleSanyaChoice()" class="bg-white border-4 border-slate-200 hover:border-slate-400 rounded-xl p-6 transform hover:scale-105 transition-all">
-                    <i class="fa-solid fa-snowflake text-5xl text-blue-300"></i>
-                </button>
-                <button onclick="handleSanyaChoice()" class="bg-white border-4 border-slate-200 hover:border-slate-400 rounded-xl p-6 transform hover:scale-105 transition-all">
-                    <i class="fa-solid fa-snowflake text-5xl text-blue-300"></i>
-                </button>
+    <!-- Голуб Мафіозі -->
+    <div id="pigeon-modal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center hidden backdrop-blur-sm">
+        <div class="bg-slate-800 text-white w-11/12 max-w-sm p-8 rounded-3xl shadow-2xl border-4 border-slate-600 relative overflow-hidden text-center">
+            <i class="fa-solid fa-crow text-8xl text-slate-400 mb-4 pecking"></i>
+            <h2 class="text-3xl font-black uppercase text-slate-200">Голуб-Мафіозі</h2>
+            <p class="font-bold text-red-400 mt-2 text-lg">Він жере ваші крихти!</p>
+            <p class="text-sm mt-2 opacity-80 mb-6">Заклюй його всією ватагою (швидко клікай) або відкупись!</p>
+            
+            <div class="w-full bg-slate-700 rounded-full h-6 mb-4">
+                <div id="pigeon-progress" class="bg-slate-300 h-6 rounded-full transition-all" style="width: 0%"></div>
             </div>
             
-            <p id="sanya-result" class="mt-4 font-bold text-lg hidden p-4 rounded bg-white border-2 border-slate-200"></p>
-            <button id="sanya-close-btn" class="mt-6 w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-6 rounded-xl hidden transition-colors" onclick="closeSanya()">
-                Продовжити гру
+            <button id="pigeon-hit-btn" class="bg-slate-600 hover:bg-slate-500 text-white font-bold py-3 px-6 rounded-xl shadow-lg w-full mb-3 text-xl transition-transform active:scale-95">
+                КЛЮВАТИ! (<span id="pigeon-clicks">0</span>/50)
+            </button>
+            <button id="pigeon-pay-btn" class="bg-red-900/50 hover:bg-red-800 text-red-200 font-bold py-2 px-6 rounded-xl shadow w-full text-sm">
+                Відкупитися (Втратити 20%)
             </button>
         </div>
     </div>
 
-    <!-- Модальне вікно "Епічна Битва" (Оновлено на 3 фази) -->
+    <!-- Схованка (Колекції) -->
+    <div id="collectibles-modal" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center hidden backdrop-blur-md">
+        <div class="bg-amber-100 text-amber-900 w-11/12 max-w-2xl p-8 rounded-2xl shadow-2xl border-4 border-amber-600 relative">
+            <button onclick="toggleCollectibles()" class="absolute top-4 right-4 text-3xl text-amber-700 hover:text-red-600 transition-colors"><i class="fa-solid fa-xmark"></i></button>
+            <h2 class="text-3xl font-black uppercase border-b-2 border-amber-300 pb-2 mb-6"><i class="fa-solid fa-box-open"></i> Схованка під деревом</h2>
+            
+            <p class="mb-4 font-bold text-amber-700 text-center" id="col-bonus-text">Збери всі 5 предметів, щоб отримати вічний бонус +50% до доходу!</p>
+            
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4" id="collectibles-grid">
+                <!-- Заповнюється JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Фінальна Битва (3 Фази) -->
+    <!-- ... (код фінальної битви залишено без змін з попередньої версії) ... -->
     <div id="battle-modal" class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center hidden backdrop-blur-md">
-        <div class="bg-green-50 text-green-900 w-11/12 max-w-lg p-8 rounded-2xl shadow-[0_0_50px_rgba(34,197,94,0.5)] border-4 border-green-500 relative overflow-hidden text-center">
+        <div class="bg-green-50 text-green-900 w-11/12 max-w-lg p-8 rounded-2xl shadow-[0_0_50px_rgba(34,197,94,0.5)] border-4 border-green-500 relative text-center">
             <h2 id="battle-title" class="text-4xl font-black uppercase text-green-700 mb-2">Епічна Війнушка!</h2>
             <p id="battle-desc" class="font-bold text-xl mb-4">Сусідський двір викликав вас на бій!</p>
-            
             <div class="text-5xl font-black mb-4 text-red-600" id="battle-timer">10.0s</div>
-
-            <!-- Фаза 1: Атака -->
+            <!-- Фаза 1 -->
             <div id="battle-phase-1" class="block">
-                <div class="w-full bg-green-200 rounded-full h-6 mb-6 relative overflow-hidden">
-                    <div id="battle-progress-1" class="bg-green-600 h-6 transition-all duration-75" style="width: 0%"></div>
-                </div>
-                <button id="battle-hit-btn" class="bg-red-600 hover:bg-red-500 text-white font-black text-2xl py-6 px-12 rounded-full shadow-xl transform active:scale-95 transition-transform w-full">
-                    АТАКА! (<span id="battle-clicks">0</span>/40)
-                </button>
+                <div class="w-full bg-green-200 rounded-full h-6 mb-6"><div id="battle-progress-1" class="bg-green-600 h-6 transition-all" style="width: 0%"></div></div>
+                <button id="battle-hit-btn" class="bg-red-600 hover:bg-red-500 text-white font-black text-2xl py-6 px-12 rounded-full w-full active:scale-95 transition-transform">АТАКА! (<span id="battle-clicks">0</span>/40)</button>
             </div>
-
-            <!-- Фаза 2: Засідка -->
-            <div id="battle-phase-2" class="hidden relative w-full h-64 bg-green-200 rounded-lg border-4 border-green-600 overflow-hidden cursor-crosshair">
-                <!-- Кнопки-цілі генеруються через JS -->
-            </div>
-
-            <!-- Фаза 3: Перетягування -->
+            <!-- Фаза 2 -->
+            <div id="battle-phase-2" class="hidden relative w-full h-64 bg-green-200 rounded-lg border-4 border-green-600 overflow-hidden cursor-crosshair"></div>
+            <!-- Фаза 3 -->
             <div id="battle-phase-3" class="hidden mt-4">
                 <p class="text-red-600 font-bold mb-2 animate-pulse">УВАГА! Ворог тисне назад!</p>
-                <div class="w-full bg-red-200 rounded-full h-8 mb-6 relative overflow-hidden border-2 border-red-500">
-                    <div id="battle-progress-3" class="bg-blue-600 h-8 transition-all duration-75" style="width: 30%"></div>
+                <div class="w-full bg-red-200 rounded-full h-8 mb-6 relative border-2 border-red-500">
+                    <div id="battle-progress-3" class="bg-blue-600 h-8 transition-all" style="width: 30%"></div>
                     <div class="absolute inset-0 flex items-center justify-center text-white font-bold pointer-events-none drop-shadow-md">ЛІНІЯ ФРОНТУ</div>
                 </div>
-                <button id="battle-pull-btn" class="bg-blue-600 hover:bg-blue-500 text-white font-black text-2xl py-6 px-12 rounded-full shadow-xl transform active:scale-95 transition-transform w-full">
-                    ТИСНУТИ!
-                </button>
+                <button id="battle-pull-btn" class="bg-blue-600 hover:bg-blue-500 text-white font-black text-2xl py-6 px-12 rounded-full w-full active:scale-95 transition-transform">ТИСНУТИ!</button>
             </div>
         </div>
     </div>
 
-    <!-- Модальне вікно "Поразка" -->
     <div id="loss-modal" class="fixed inset-0 bg-red-900/95 z-50 flex items-center justify-center hidden backdrop-blur-md">
         <div class="text-center max-w-xl p-8 bg-red-50 rounded-2xl border-4 border-red-600 shadow-2xl">
             <i class="fa-solid fa-skull-crossbones text-7xl text-red-600 mb-4 animate-pulse"></i>
             <h2 class="text-4xl font-black uppercase text-red-800 mb-4">Відступ!</h2>
             <p id="loss-reason" class="text-xl font-bold mb-4 text-red-900">Ви не втримали оборону!</p>
             <p class="text-lg mb-6">Ватага в паніці розбіглася, гублячи запаси.<br>Втрачено: <span id="loss-amount" class="font-black text-red-600 text-3xl">0</span> крихт.</p>
-            <button onclick="document.getElementById('loss-modal').classList.add('hidden')" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-full text-xl shadow-lg transition-all w-full">
-                Зализати рани
-            </button>
-        </div>
-    </div>
-
-    <!-- Модальне вікно "Перемога" -->
-    <div id="victory-modal" class="fixed inset-0 bg-amber-100/95 z-50 flex items-center justify-center hidden backdrop-blur-md">
-        <div class="text-center max-w-2xl p-8">
-            <i class="fa-solid fa-crown text-8xl text-yellow-500 mb-6 drop-shadow-lg"></i>
-            <h2 class="text-5xl font-black uppercase text-amber-800 mb-6">Двір Наш!</h2>
-            <p class="text-2xl font-bold mb-4">Ви перемогли сусідських хлопців і стали легендою району.</p>
-            <p class="text-lg italic opacity-80 mb-8">"Дитинство пішло... Але дружба живе. І цей двір назавжди залишиться вашим у спогадах."</p>
-            <button onclick="document.getElementById('victory-modal').classList.add('hidden')" class="bg-yellow-500 hover:bg-yellow-400 text-yellow-900 font-bold py-3 px-8 rounded-full text-xl shadow-lg transition-all">
-                Продовжити грати (Дохід x10)
-            </button>
+            <button onclick="document.getElementById('loss-modal').classList.add('hidden')" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-full text-xl w-full">Зализати рани</button>
         </div>
     </div>
 
     <!-- Футер зі статусом збереження -->
-    <footer class="text-center mt-8 pb-4 opacity-60 text-sm flex justify-center items-center gap-4">
+    <footer class="text-center mt-6 pb-4 opacity-60 text-sm flex justify-center items-center gap-4 z-10 relative">
         <span id="save-status">Автозбереження кожні 5 сек...</span>
-        <button onclick="resetGame()" class="underline hover:text-red-500 transition-colors">Скинути прогрес</button>
+        <button onclick="hardResetGame()" class="underline hover:text-red-500 transition-colors">Стерти всі збереження (Hard Reset)</button>
     </footer>
 
     <script>
-        // --- СТАН ГРИ ---
-        let state = {
-            crumbs: 0,
-            totalCrumbs: 0,
-            ilyaActive: false,
-            battleWon: false,
-            
-            // Стани випадкових подій
-            babaZoyaActive: false,
-            escapeClicks: 0,
-            escapeTarget: 10,
-            
-            vladActive: false,
-            vladProgress: 0, // Змінено на відсотки від 0 до 100
-            
-            sanyaActive: false
-        };
-
+        // --- БАЗА ДАНИХ: ПОКРАЩЕННЯ ---
         const INITIAL_UPGRADES = [
             { id: 'swords', name: 'Уявні мечі', baseCost: 15, effect: 1, type: 'click', desc: 'Палки у руках — джедаї спокійні.', icon: 'fa-khanda', color: 'text-gray-600', count: 0 },
             { id: 'vetal', name: 'Вєталь (Сальто)', baseCost: 50, effect: 2, type: 'idle', desc: 'Паркур по дворах залучає глядачів.', icon: 'fa-person-running', color: 'text-blue-500', count: 0 },
@@ -295,103 +225,205 @@
             { id: 'misha', name: 'Міша-Рокер', baseCost: 5000, effect: 200, type: 'idle', desc: 'Ракетку узяв, рок-зірку вдавав.', icon: 'fa-guitar', color: 'text-purple-500', count: 0 }
         ];
 
+        // --- БАЗА ДАНИХ: КОЛЕКЦІЇ ---
+        const COLLECTIBLES_DB = [
+            { id: 'c_soldier', name: 'Солдатик', icon: 'fa-person-rifle', desc: 'Зламаний, але не здався.' },
+            { id: 'c_turbo', name: 'Вкладиш Turbo', icon: 'fa-car-side', desc: 'Номер 51, дуже рідкісний!' },
+            { id: 'c_caps', name: 'Кепс POG', icon: 'fa-compact-disc', desc: 'Бита металева, кепс пластиковий.' },
+            { id: 'c_ball', name: 'Скляна кулька', icon: 'fa-circle-dot', desc: 'Переливається на сонці.' },
+            { id: 'c_cassette', name: 'Касета Денді', icon: 'fa-gamepad', desc: '9999 in 1 (насправді 4 гри).' }
+        ];
+
         let upgrades = JSON.parse(JSON.stringify(INITIAL_UPGRADES));
 
-        // --- ЕЛЕМЕНТИ DOM ---
+        // --- СТАН ГРИ ---
+        let state = {
+            crumbs: 0,
+            totalCrumbs: 0,
+            ilyaActive: false,
+            battleWon: false,
+            memories: 0, // Престиж валюта
+            unlockedCollectibles: [],
+            
+            // Динамічні стани
+            timeOfDay: 'day', // 'day' або 'night'
+            pigeonActive: false,
+            pigeonClicks: 0
+        };
+
         const els = {
             crumbsDisplay: document.getElementById('crumbs-display'),
             cpsDisplay: document.getElementById('cps-display'),
+            cpcDisplay: document.getElementById('cpc-display'),
             mainClickArea: document.getElementById('main-click-area'),
             upgradesContainer: document.getElementById('upgrades-container'),
+            synergyPanel: document.getElementById('synergy-panel'),
+            
             ilyaUpgradeBtn: document.getElementById('ilya-upgrade-btn'),
             ilyaIcon: document.getElementById('ilya-icon'),
             ilyaCost: document.getElementById('ilya-cost'),
+            ilyaTitle: document.getElementById('ilya-title'),
             ilyaDesc: document.getElementById('ilya-desc'),
             
-            // Баба Зоя
-            babaZoyaModal: document.getElementById('baba-zoya-modal'),
-            escapeBtn: document.getElementById('escape-btn'),
-            escapeProgress: document.getElementById('escape-progress'),
-            escapeCount: document.getElementById('escape-count'),
-            miniGameArea: document.getElementById('mini-game-area'),
-
-            // Влад
-            vladModal: document.getElementById('vlad-modal'),
-            vladProgress: document.getElementById('vlad-progress'),
-            vladBtn: document.getElementById('vlad-pull-btn'),
-
-            // Санько
-            sanyaModal: document.getElementById('sanya-modal'),
-            sanyaBoxes: document.getElementById('sanya-boxes'),
-            sanyaResult: document.getElementById('sanya-result'),
-            sanyaCloseBtn: document.getElementById('sanya-close-btn'),
+            // Мафія
+            pigeonModal: document.getElementById('pigeon-modal'),
+            pigeonHitBtn: document.getElementById('pigeon-hit-btn'),
+            pigeonPayBtn: document.getElementById('pigeon-pay-btn'),
+            pigeonProgress: document.getElementById('pigeon-progress'),
+            pigeonClicks: document.getElementById('pigeon-clicks'),
             
-            // Елементи для зміни теми
+            // Колекції
+            colModal: document.getElementById('collectibles-modal'),
+            colGrid: document.getElementById('collectibles-grid'),
+            
+            // Теми
             appBody: document.getElementById('app-body'),
             appHeader: document.getElementById('app-header'),
-            crumbsLabel: document.getElementById('crumbs-label'),
+            timeStatus: document.getElementById('time-status'),
             mainIcon: document.getElementById('main-icon'),
             mainText: document.getElementById('main-text'),
             upgradesPanel: document.getElementById('upgrades-panel'),
             
-            // Збереження
-            saveStatus: document.getElementById('save-status')
+            // Візуал
+            visSword: document.getElementById('vis-sword'),
+            visBall: document.getElementById('vis-ball'),
+            visGuitar: document.getElementById('vis-guitar')
         };
 
-        // --- ОБЧИСЛЕННЯ ---
-        function getCost(upgrade) {
-            return Math.floor(upgrade.baseCost * Math.pow(1.15, upgrade.count));
+        // --- ЛОГІКА ТА МАТЕМАТИКА ---
+        function checkTimeOfDay() {
+            const hour = new Date().getHours();
+            const newTime = (hour >= 8 && hour < 20) ? 'day' : 'night';
+            if (state.timeOfDay !== newTime) {
+                state.timeOfDay = newTime;
+                updateTheme();
+            }
+        }
+
+        function getCost(upg) { return Math.floor(upg.baseCost * Math.pow(1.15, upg.count)); }
+
+        function checkSynergies() {
+            let activeSynergies = [];
+            let synMult = 1;
+
+            // Синергія 1: Зйомка трюків (Вєталь + Саня)
+            let vetal = upgrades.find(u => u.id === 'vetal').count;
+            let sanya = upgrades.find(u => u.id === 'k750').count;
+            if (vetal >= 10 && sanya >= 10) {
+                activeSynergies.push({ name: '📹 Зйомка трюків', bonus: 'Дохід x1.5' });
+                synMult *= 1.5;
+            }
+
+            // Синергія 2: Спортивний інтерес (Анрі + Вітя)
+            let anri = upgrades.find(u => u.id === 'anri').count;
+            let vitya = upgrades.find(u => u.id === 'vitya').count;
+            if (anri >= 15 && vitya >= 15) {
+                activeSynergies.push({ name: '⚽ Спортивний турнір', bonus: 'Клік x2' });
+            }
+
+            return { synergies: activeSynergies, idleMult: synMult, clickMult: (anri >= 15 && vitya >= 15 ? 2 : 1) };
         }
 
         function getStats() {
             let baseClick = 1 + upgrades.filter(u => u.type === 'click').reduce((acc, u) => acc + (u.effect * u.count), 0);
             let baseCps = upgrades.filter(u => u.type === 'idle').reduce((acc, u) => acc + (u.effect * u.count), 0);
             
-            // Якщо битва виграна - x10 бонус. Якщо лише Ілля - x3 бонус.
-            let multiplier = state.battleWon ? 10 : (state.ilyaActive ? 3 : 1);
+            // Глобальні множники
+            let prestigeMult = 1 + (state.memories * 0.5); // +50% за кожен спогад
+            let colMult = state.unlockedCollectibles.length === COLLECTIBLES_DB.length ? 1.5 : 1; // +50% за всю колекцію
+            let ilyaMult = state.battleWon ? 10 : (state.ilyaActive ? 3 : 1);
             
-            let cps = baseCps * multiplier;
-            if (state.babaZoyaActive) cps = 0; // Баба Зоя зупиняє дохід повністю
-            else if (state.vladActive) cps = Math.floor(cps / 2); // Влад зменшує дохід вдвічі
-            
-            let clickPower = baseClick * multiplier;
-            if (state.babaZoyaActive) clickPower = 1; // Баба Зоя збиває силу кліку
+            let globalMult = prestigeMult * colMult * ilyaMult;
 
-            return { cps, clickPower };
+            // Час доби
+            let timeIdleMult = state.timeOfDay === 'night' ? 2 : 1;
+            let timeClickMult = state.timeOfDay === 'day' ? 2 : 1;
+
+            // Синергії
+            let syn = checkSynergies();
+
+            let cps = baseCps * globalMult * timeIdleMult * syn.idleMult;
+            let clickPower = baseClick * globalMult * timeClickMult * syn.clickMult;
+
+            // Події
+            if (state.pigeonActive) {
+                cps = -Math.abs(cps * 0.5); // Голуб жере 50% від поточного доходу (або мінус)
+                if(cps === 0) cps = -10; // Навіть якщо доходу нема, він краде запаси
+                clickPower = 1; // Паніка
+            }
+
+            return { cps, clickPower, synergies: syn.synergies };
         }
 
-        // --- РЕНДЕР ІНТЕРФЕЙСУ ---
+        // --- РЕНДЕР ТА ВІЗУАЛ ---
+        function updateTheme() {
+            if (state.ilyaActive) {
+                // Військова тема (пріоритет)
+                els.appBody.className = "bg-green-950 text-green-50 theme-transition min-h-screen";
+                els.appHeader.className = "p-4 shadow-md text-center border-b-4 bg-green-900 border-green-700 theme-transition flex flex-col md:flex-row justify-between items-center px-8 relative z-10";
+                els.mainClickArea.className = "w-64 h-64 md:w-80 md:h-80 rounded-full shadow-2xl flex items-center justify-center cursor-pointer transform hover:scale-105 transition-transform select-none relative bg-green-800 shadow-green-500/50 mt-4 z-10 theme-transition";
+                els.mainIcon.className = "fa-solid fa-tent text-9xl text-green-300 theme-transition";
+                els.upgradesPanel.className = "rounded-xl p-4 h-[75vh] overflow-y-auto shadow-inner border-2 bg-green-900/50 border-green-800 theme-transition relative z-10";
+            } else if (state.timeOfDay === 'night') {
+                // Нічна тема
+                els.appBody.className = "bg-slate-900 text-slate-100 theme-transition min-h-screen";
+                els.appHeader.className = "p-4 shadow-md text-center border-b-4 bg-slate-800 border-slate-600 theme-transition flex flex-col md:flex-row justify-between items-center px-8 relative z-10";
+                els.mainClickArea.className = "w-64 h-64 md:w-80 md:h-80 rounded-full shadow-2xl flex items-center justify-center cursor-pointer transform hover:scale-105 transition-transform select-none relative bg-slate-700 shadow-blue-900/50 theme-transition mt-4 z-10";
+                els.mainIcon.className = "fa-solid fa-moon text-9xl text-slate-300 theme-transition";
+                els.upgradesPanel.className = "rounded-xl p-4 h-[75vh] overflow-y-auto shadow-inner border-2 bg-slate-800/80 border-slate-600 theme-transition relative z-10";
+                els.timeStatus.innerHTML = '<i class="fa-solid fa-moon text-blue-300"></i> Тихий Вечір (Пасив x2)';
+                els.timeStatus.className = "text-sm font-bold text-blue-300";
+            } else {
+                // Денна тема (за замовчуванням)
+                els.appBody.className = "bg-amber-50 text-amber-950 theme-transition min-h-screen";
+                els.appHeader.className = "p-4 shadow-md text-center border-b-4 bg-amber-200 border-amber-400 theme-transition flex flex-col md:flex-row justify-between items-center px-8 relative z-10";
+                els.mainClickArea.className = "w-64 h-64 md:w-80 md:h-80 rounded-full shadow-2xl flex items-center justify-center cursor-pointer transform hover:scale-105 transition-transform select-none relative bg-amber-300 shadow-amber-600/50 theme-transition mt-4 z-10";
+                els.mainIcon.className = "fa-solid fa-dove text-9xl text-amber-800 theme-transition";
+                els.upgradesPanel.className = "rounded-xl p-4 h-[75vh] overflow-y-auto shadow-inner border-2 bg-amber-100/50 border-amber-200 theme-transition relative z-10";
+                els.timeStatus.innerHTML = '<i class="fa-solid fa-sun text-amber-600"></i> Сонячний День (Клік x2)';
+                els.timeStatus.className = "text-sm font-bold text-amber-700 opacity-75";
+            }
+        }
+
+        function updateVisualItems() {
+            let s = upgrades.find(u => u.id === 'swords').count;
+            els.visSword.style.opacity = s >= 10 ? '0.7' : '0';
+            
+            let v = upgrades.find(u => u.id === 'vitya').count;
+            els.visBall.style.opacity = v >= 5 ? '0.8' : '0';
+            
+            let m = upgrades.find(u => u.id === 'misha').count;
+            els.visGuitar.style.opacity = m >= 1 ? '0.9' : '0';
+        }
+
         function renderUpgrades() {
-            // 1. Створюємо HTML структуру лише один раз (якщо її ще немає)
             if (els.upgradesContainer.children.length === 0) {
                 upgrades.forEach(upg => {
                     const btn = document.createElement('button');
                     btn.id = `upgrade-btn-${upg.id}`;
                     btn.onclick = () => buyUpgrade(upg.id);
-                    
                     btn.innerHTML = `
                         <div class="flex items-center gap-4 flex-1">
-                            <div id="upgrade-icon-bg-${upg.id}" class="p-3 rounded-full flex items-center justify-center w-12 h-12">
-                                <i class="fa-solid ${upg.icon} ${upg.color} text-xl"></i>
+                            <div id="upgrade-icon-bg-${upg.id}" class="p-3 rounded-full flex items-center justify-center w-12 h-12 transition-colors">
+                                <i class="fa-solid ${upg.icon} ${upg.color} text-xl drop-shadow-sm"></i>
                             </div>
                             <div>
-                                <h3 class="font-bold text-lg leading-tight">${upg.name}</h3>
-                                <p class="text-xs opacity-75 mt-1">${upg.desc}</p>
-                                <p class="text-sm font-semibold mt-1">
+                                <h3 class="font-bold text-lg leading-tight text-left">${upg.name}</h3>
+                                <p class="text-xs opacity-75 mt-1 text-left">${upg.desc}</p>
+                                <p class="text-sm font-semibold mt-1 text-left">
                                     ${upg.type === 'click' ? `+${upg.effect} за клік` : `+${upg.effect} в сек`}
                                 </p>
                             </div>
                         </div>
                         <div class="text-right ml-4 min-w-[80px]">
                             <div id="upgrade-cost-${upg.id}" class="font-bold text-lg"></div>
-                            <div id="upgrade-level-${upg.id}" class="text-sm opacity-60"></div>
+                            <div id="upgrade-level-${upg.id}" class="text-sm font-bold opacity-60"></div>
                         </div>
                     `;
                     els.upgradesContainer.appendChild(btn);
                 });
             }
 
-            // 2. Просто оновлюємо класи та текст у існуючих кнопок
             upgrades.forEach(upg => {
                 const cost = getCost(upg);
                 const canAfford = state.crumbs >= cost;
@@ -401,92 +433,106 @@
                 const costDiv = document.getElementById(`upgrade-cost-${upg.id}`);
                 const levelDiv = document.getElementById(`upgrade-level-${upg.id}`);
                 
-                // Визначаємо стилі в залежності від теми
-                const bgClass = canAfford 
-                    ? (state.ilyaActive ? 'bg-green-800 border-green-600 hover:bg-green-700 text-green-50' : 'bg-white border-amber-300 hover:border-amber-500 hover:shadow-md cursor-pointer') 
-                    : (state.ilyaActive ? 'bg-green-950/50 border-green-900 opacity-60 text-green-200 cursor-not-allowed' : 'bg-amber-50 border-amber-100 opacity-60 cursor-not-allowed');
-
-                const iconBgClass = state.ilyaActive ? 'bg-green-900' : 'bg-amber-100';
-                const costColor = canAfford ? (state.ilyaActive ? 'text-green-300' : 'text-amber-600') : 'text-gray-400';
-
-                // Застосовуємо оновлення
-                btn.className = `flex items-center justify-between p-3 rounded-lg border-2 transition-all text-left w-full ${bgClass}`;
-                btn.disabled = !canAfford;
-
-                iconBg.className = `p-3 rounded-full flex items-center justify-center w-12 h-12 ${iconBgClass}`;
+                let themeBase = state.ilyaActive ? 'green' : (state.timeOfDay === 'night' ? 'slate' : 'amber');
                 
-                costDiv.className = `font-bold text-lg ${costColor}`;
+                if(canAfford) {
+                    btn.className = `flex items-center justify-between p-3 rounded-xl border-2 transition-all w-full bg-${themeBase === 'amber'?'white':themeBase+'-800'} border-${themeBase}-400 hover:border-${themeBase}-500 hover:shadow-lg cursor-pointer transform hover:-translate-y-1 ${themeBase==='green'?'text-white':''}`;
+                    iconBg.className = `p-3 rounded-full flex items-center justify-center w-12 h-12 bg-${themeBase}-100`;
+                    costDiv.className = `font-black text-lg text-${themeBase==='green'?'green-300':themeBase+'-600'}`;
+                } else {
+                    btn.className = `flex items-center justify-between p-3 rounded-xl border-2 transition-all w-full bg-${themeBase}-50/50 border-${themeBase}-200 opacity-60 cursor-not-allowed ${themeBase!=='amber'?'text-gray-400':''}`;
+                    iconBg.className = `p-3 rounded-full flex items-center justify-center w-12 h-12 bg-gray-200/50`;
+                    costDiv.className = `font-bold text-lg text-gray-500`;
+                }
+                
                 costDiv.innerText = cost.toLocaleString();
-
                 levelDiv.innerText = `Рів: ${upg.count}`;
             });
         }
 
         function updateUI() {
-            const { cps } = getStats();
+            const stats = getStats();
             els.crumbsDisplay.innerText = Math.floor(state.crumbs).toLocaleString();
-            els.cpsDisplay.innerText = cps.toLocaleString();
+            els.cpsDisplay.innerText = stats.cps.toLocaleString();
+            els.cpcDisplay.innerText = stats.clickPower.toLocaleString();
+            
+            if(state.pigeonActive) {
+                els.cpsDisplay.className = "text-red-500 font-black drop-shadow animate-pulse";
+            } else {
+                els.cpsDisplay.className = "";
+            }
+
+            // Синергії
+            els.synergyPanel.innerHTML = stats.synergies.map(s => 
+                `<span class="bg-blue-100 border border-blue-400 text-blue-800 text-xs font-bold px-2 py-1 rounded-full drop-shadow-sm">${s.name} (${s.bonus})</span>`
+            ).join('');
+
+            // Престиж Бейдж
+            if(state.memories > 0) {
+                document.getElementById('memories-badge').classList.remove('hidden');
+                document.getElementById('memories-count').innerText = state.memories;
+            }
 
             renderUpgrades();
+            updateVisualItems();
 
-            // Оновлення кнопки Іллі
+            // Кнопка Іллі / Престижу
             if (!state.ilyaActive) {
                 if (state.crumbs >= 100000) {
-                    els.ilyaUpgradeBtn.className = "w-full p-6 rounded-xl border-4 text-left transition-all relative overflow-hidden border-yellow-400 bg-gray-900 text-yellow-100 hover:bg-gray-800 cursor-pointer shadow-[0_0_15px_rgba(250,204,21,0.5)]";
-                    els.ilyaIcon.className = "fa-solid fa-flag text-2xl text-yellow-400";
+                    els.ilyaUpgradeBtn.className = "w-full p-6 rounded-xl border-4 text-left transition-all relative overflow-hidden border-yellow-400 bg-gray-900 text-yellow-100 hover:bg-gray-800 cursor-pointer shadow-[0_0_20px_rgba(250,204,21,0.6)] transform hover:scale-105";
+                    els.ilyaIcon.className = "fa-solid fa-flag text-3xl text-yellow-400 animate-pulse";
                     els.ilyaUpgradeBtn.disabled = false;
                 } else {
-                    els.ilyaUpgradeBtn.className = "w-full p-6 rounded-xl border-4 text-left transition-all relative overflow-hidden border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed";
+                    els.ilyaUpgradeBtn.className = "w-full p-6 rounded-xl border-4 text-left transition-all relative overflow-hidden border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed opacity-80";
                     els.ilyaIcon.className = "fa-solid fa-flag text-2xl text-gray-400";
                     els.ilyaUpgradeBtn.disabled = true;
                 }
             } else if (!state.battleWon) {
-                // Стан: Ілля куплений, битва ще не виграна
-                els.ilyaUpgradeBtn.className = "w-full p-6 rounded-xl border-4 text-left transition-all relative overflow-hidden border-red-500 bg-red-900 text-red-100 hover:bg-red-800 cursor-pointer shadow-[0_0_15px_rgba(239,68,68,0.5)] animate-pulse";
-                els.ilyaIcon.className = "fa-solid fa-crosshairs text-2xl text-red-400";
+                els.ilyaUpgradeBtn.className = "w-full p-6 rounded-xl border-4 text-left transition-all relative overflow-hidden border-red-500 bg-red-900 text-red-100 hover:bg-red-800 cursor-pointer shadow-[0_0_20px_rgba(239,68,68,0.6)] animate-pulse transform hover:scale-105";
+                els.ilyaIcon.className = "fa-solid fa-crosshairs text-3xl text-red-400";
                 els.ilyaCost.style.display = 'none';
-                els.ilyaUpgradeBtn.querySelector('h3').innerText = "ПОЧАТИ ЕПІЧНУ БИТВУ!";
+                els.ilyaTitle.innerText = "ПОЧАТИ ЕПІЧНУ БИТВУ!";
                 els.ilyaDesc.innerText = "Сусідський двір наступає! Збери ватагу на вирішальний бій!";
                 els.ilyaUpgradeBtn.disabled = false;
             } else {
-                // Стан: Битва виграна (Перемога)
-                els.ilyaUpgradeBtn.className = "w-full p-6 rounded-xl border-4 text-left transition-all relative overflow-hidden border-yellow-500 bg-yellow-900 text-yellow-200 cursor-default";
-                els.ilyaIcon.className = "fa-solid fa-crown text-2xl text-yellow-400";
+                // ПРЕСТИЖ ДОСТУПНИЙ
+                els.ilyaUpgradeBtn.className = "w-full p-6 rounded-xl border-4 text-left transition-all relative overflow-hidden border-purple-500 bg-purple-900 text-purple-100 hover:bg-purple-800 cursor-pointer shadow-[0_0_20px_rgba(168,85,247,0.6)] transform hover:scale-105 mt-4";
+                els.ilyaIcon.className = "fa-solid fa-forward text-3xl text-purple-400";
                 els.ilyaCost.style.display = 'none';
-                els.ilyaUpgradeBtn.querySelector('h3').innerText = "Легенди Двору";
-                els.ilyaDesc.innerText = "Ви — Абсолютні Чемпіони району! (Дохід x10)";
-                els.ilyaUpgradeBtn.disabled = true;
+                els.ilyaTitle.innerText = "Закрити Літо (Престиж)";
+                els.ilyaDesc.innerText = "Перейти в наступний рік. Все почнеться спочатку, але ви отримаєте +1 Світлий Спогад (+50% доходу назавжди).";
+                els.ilyaUpgradeBtn.disabled = false;
             }
         }
 
-        // --- ЛОГІКА КЛІКУ ТА ПОКУПОК ---
+        // --- КЛІК ТА ПОКУПКИ ---
         function handleMainClick(e) {
             const { clickPower } = getStats();
             state.crumbs += clickPower;
             state.totalCrumbs += clickPower;
             
-            // Анімація пташки
             els.mainClickArea.classList.add('scale-95');
             setTimeout(() => els.mainClickArea.classList.remove('scale-95'), 100);
 
-            // Вилітаюча цифра
-            createFloatingText(e.clientX, e.clientY, `+${clickPower}`);
+            createFloatingText(e.clientX, e.clientY, `+${clickPower.toLocaleString()}`);
             
+            // Шанс знайти колекційний предмет (0.5%)
+            if(Math.random() < 0.005 && !state.pigeonActive) {
+                findRandomCollectible();
+            }
+
             updateUI();
         }
 
         function createFloatingText(x, y, text) {
             const el = document.createElement('div');
             el.className = 'floating-text';
-            // Якщо активовано Іллю, робимо цифри зеленими
             if(state.ilyaActive) el.classList.add('text-green-500');
+            else if(state.timeOfDay === 'night') el.classList.add('text-blue-300');
             el.innerText = text;
-            
-            // Випадкове відхилення
             const offsetX = (Math.random() - 0.5) * 40;
             el.style.left = `${x - 20 + offsetX}px`;
             el.style.top = `${y - 20}px`;
-            
             document.body.appendChild(el);
             setTimeout(() => el.remove(), 1000);
         }
@@ -501,167 +547,125 @@
             }
         }
 
-        // --- МЕХАНІКА "ІЛЛЯ (ШТАБ)" ---
-        function setIlyaTheme() {
-            els.appBody.className = "bg-green-950 text-green-50 theme-transition min-h-screen";
-            els.appHeader.className = "p-4 shadow-md text-center border-b-4 bg-green-900 border-green-700 theme-transition";
-            els.crumbsLabel.className = "text-green-400";
+        // --- КОЛЕКЦІЇ ТА СХОВАНКА ---
+        function findRandomCollectible() {
+            const locked = COLLECTIBLES_DB.filter(c => !state.unlockedCollectibles.includes(c.id));
+            if(locked.length === 0) return; // Все зібрано
             
-            els.mainClickArea.className = "w-64 h-64 md:w-80 md:h-80 rounded-full shadow-2xl flex items-center justify-center cursor-pointer transform hover:scale-105 transition-transform select-none relative bg-green-800 shadow-green-500/50 mt-8 theme-transition";
-            els.mainIcon.className = "fa-solid fa-tent text-9xl text-green-300 theme-transition";
-            els.mainText.innerText = "Штаб працює!";
+            const item = locked[Math.floor(Math.random() * locked.length)];
+            state.unlockedCollectibles.push(item.id);
             
-            els.upgradesPanel.className = "rounded-xl p-4 h-[80vh] overflow-y-auto shadow-inner border-2 bg-green-900/50 border-green-800 theme-transition";
+            const toast = document.getElementById('collectible-toast');
+            toast.innerHTML = `<i class="fa-solid ${item.icon} text-4xl mb-2"></i><br>Знайдено: ${item.name}!`;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+            
+            renderCollectibles();
+            updateUI();
+            saveGame();
         }
 
-        function activateIlya() {
-            if (state.crumbs >= 100000 && !state.ilyaActive) {
-                state.crumbs -= 100000;
-                state.ilyaActive = true;
-                
-                // Очищаємо всі негативні події, бо Штаб захищає!
-                state.babaZoyaActive = false; 
-                state.vladActive = false;
-                state.sanyaActive = false;
-                
-                setIlyaTheme();
-                
-                updateUI();
-                saveGame(); // Миттєво зберігаємо цей ключовий момент
+        function toggleCollectibles() {
+            const mod = els.colModal;
+            if(mod.classList.contains('hidden')) {
+                renderCollectibles();
+                mod.classList.remove('hidden');
+            } else {
+                mod.classList.add('hidden');
             }
         }
 
-        // --- ВИПАДКОВІ ПОДІЇ ТА МІНІ-ІГРИ ---
+        function renderCollectibles() {
+            els.colGrid.innerHTML = '';
+            let allUnlocked = state.unlockedCollectibles.length === COLLECTIBLES_DB.length;
+            document.getElementById('col-bonus-text').innerText = allUnlocked ? "Колекція зібрана! Вічний бонус +50% АКТИВНИЙ!" : "Збери всі 5 предметів, щоб отримати вічний бонус +50% до доходу!";
+            document.getElementById('col-bonus-text').className = allUnlocked ? "mb-4 font-black text-green-600 text-center text-xl animate-pulse" : "mb-4 font-bold text-amber-700 text-center";
 
-        // 1. Баба Зоя
-        function triggerBabaZoya() {
-            state.babaZoyaActive = true;
-            state.escapeClicks = 0;
+            COLLECTIBLES_DB.forEach(item => {
+                const isUnlocked = state.unlockedCollectibles.includes(item.id);
+                const div = document.createElement('div');
+                div.className = `p-4 rounded-xl border-4 text-center ${isUnlocked ? 'bg-white border-amber-400 shadow-md' : 'bg-amber-50/50 border-amber-200 opacity-50 grayscale'}`;
+                div.innerHTML = `
+                    <i class="fa-solid ${item.icon} text-4xl mb-2 ${isUnlocked ? 'text-amber-600' : 'text-gray-400'}"></i>
+                    <h4 class="font-bold text-sm mb-1">${isUnlocked ? item.name : '???'}</h4>
+                    <p class="text-xs opacity-70">${isUnlocked ? item.desc : 'Шукай краще'}</p>
+                `;
+                els.colGrid.appendChild(div);
+            });
+        }
+
+        // --- МАФІЯ (ГОЛУБ) ---
+        function triggerPigeon() {
+            if(state.ilyaActive || state.pigeonActive || state.battleWon) return;
+            state.pigeonActive = true;
+            state.pigeonClicks = 0;
             
-            els.escapeCount.innerText = state.escapeClicks;
-            els.escapeProgress.style.width = '0%';
-            els.babaZoyaModal.classList.remove('hidden');
-            
-            moveEscapeButton();
+            els.pigeonClicks.innerText = 0;
+            els.pigeonProgress.style.width = '0%';
+            els.pigeonModal.classList.remove('hidden');
             updateUI();
         }
 
-        function moveEscapeButton() {
-            const area = els.miniGameArea;
-            const btn = els.escapeBtn;
+        els.pigeonHitBtn.addEventListener('click', () => {
+            state.pigeonClicks++;
+            els.pigeonClicks.innerText = state.pigeonClicks;
+            els.pigeonProgress.style.width = `${(state.pigeonClicks/50)*100}%`;
             
-            const maxX = area.clientWidth - btn.clientWidth;
-            const maxY = area.clientHeight - btn.clientHeight;
-            
-            const randomX = Math.max(0, Math.floor(Math.random() * maxX));
-            const randomY = Math.max(0, Math.floor(Math.random() * maxY));
-            
-            btn.classList.remove('top-1/2', 'left-1/2', '-translate-x-1/2', '-translate-y-1/2');
-            btn.style.left = `${randomX}px`;
-            btn.style.top = `${randomY}px`;
-        }
+            let btn = els.pigeonHitBtn;
+            btn.classList.add('scale-95', 'bg-slate-400');
+            setTimeout(() => btn.classList.remove('scale-95', 'bg-slate-400'), 50);
 
-        function handleEscapeClick(e) {
-            e.stopPropagation();
-            state.escapeClicks += 1;
-            
-            els.escapeCount.innerText = state.escapeClicks;
-            els.escapeProgress.style.width = `${(state.escapeClicks / state.escapeTarget) * 100}%`;
-            
-            if (state.escapeClicks >= state.escapeTarget) {
-                state.babaZoyaActive = false;
-                els.babaZoyaModal.classList.add('hidden');
+            if(state.pigeonClicks >= 50) {
+                state.pigeonActive = false;
+                els.pigeonModal.classList.add('hidden');
                 updateUI();
-            } else {
-                moveEscapeButton();
-            }
-        }
-
-        // 2. Туалетна пригода Владюсіка (Перетягування)
-        function triggerVlad() {
-            state.vladActive = true;
-            state.vladProgress = 0;
-            
-            els.vladProgress.style.width = '0%';
-            els.vladModal.classList.remove('hidden');
-            updateUI(); // Щоб застосувати зменшення доходу
-        }
-
-        els.vladBtn.addEventListener('click', () => {
-            if (!state.vladActive) return; // Запобігаємо зайвим клікам після перемоги
-
-            state.vladProgress += 15; // Кожен клік додає 15%
-            
-            if (state.vladProgress >= 100) {
-                state.vladProgress = 100;
-                state.vladActive = false;
-                els.vladProgress.style.width = '100%';
-                
-                // Невелика затримка, щоб побачити повний прогрес-бар
-                setTimeout(() => {
-                    els.vladModal.classList.add('hidden');
-                    updateUI(); // Дохід відновлюється
-                }, 300);
-            } else {
-                els.vladProgress.style.width = `${state.vladProgress}%`;
             }
         });
 
-        // 3. Зимове лайно Санька
-        function triggerSanya() {
-            state.sanyaActive = true;
-            els.sanyaResult.classList.add('hidden');
-            els.sanyaCloseBtn.classList.add('hidden');
-            els.sanyaBoxes.classList.remove('hidden');
-            els.sanyaModal.classList.remove('hidden');
-        }
-
-        function handleSanyaChoice() {
-            els.sanyaBoxes.classList.add('hidden');
-            els.sanyaResult.classList.remove('hidden');
-            
-            const isBonus = Math.random() > 0.5;
-            const currentCps = getStats().cps || 10; // Якщо дохід 0, беремо 10 як базу
-            const amount = Math.floor(currentCps * 30); // 30 секунд доходу
-
-            if (isBonus) {
-                state.crumbs += amount;
-                els.sanyaResult.innerText = `Бінго! Під снігом лежала заначка. Отримано ${amount.toLocaleString()} крихт!`;
-                els.sanyaResult.className = "mt-4 font-bold text-lg text-green-600 p-4 rounded bg-white border-2 border-green-200";
-            } else {
-                const lost = Math.min(state.crumbs, amount);
-                state.crumbs -= lost;
-                els.sanyaResult.innerText = `Ой-йой... Це було саме воно. Втрачено ${lost.toLocaleString()} крихт на відмивання!`;
-                els.sanyaResult.className = "mt-4 font-bold text-lg text-red-600 p-4 rounded bg-white border-2 border-red-200";
-            }
-            
+        els.pigeonPayBtn.addEventListener('click', () => {
+            let tax = Math.floor(state.crumbs * 0.2);
+            state.crumbs -= tax;
+            state.pigeonActive = false;
+            els.pigeonModal.classList.add('hidden');
             updateUI();
-            els.sanyaCloseBtn.classList.remove('hidden');
-        }
+        });
 
-        function closeSanya() {
-            state.sanyaActive = false;
-            els.sanyaModal.classList.add('hidden');
-        }
-
-        // --- МЕХАНІКА "ЕПІЧНА БИТВА" (ФІНАЛ) ---
-        let battleState = {
-            active: false,
-            phase: 1,
-            timeLeft: 0,
-            interval: null,
-            p1Clicks: 0,
-            p2Targets: 0,
-            p3Progress: 30
-        };
-
+        // --- ІЛЛЯ ТА ПРЕСТИЖ ---
         function handleIlyaBtnClick() {
             if (!state.ilyaActive) {
-                activateIlya();
+                state.crumbs -= 100000;
+                state.ilyaActive = true;
+                state.pigeonActive = false; // Знімаємо негативні події
+                updateTheme();
+                updateUI();
+                saveGame();
             } else if (!state.battleWon) {
                 startBattle();
+            } else {
+                doPrestige();
             }
         }
+
+        function doPrestige() {
+            if(confirm("Ти впевнений? Двір скинеться до нуля, але ти отримаєш +1 Світлий Спогад (+50% до глобального доходу назавжди!). Колекція схованки також зберігається.")) {
+                state.memories += 1;
+                state.crumbs = 0;
+                state.totalCrumbs = 0;
+                state.ilyaActive = false;
+                state.battleWon = false;
+                
+                upgrades.forEach(u => u.count = 0);
+                
+                updateTheme();
+                updateUI();
+                saveGame();
+                alert("Новий рік у дворі почався! У вас тепер " + state.memories + " спогадів.");
+            }
+        }
+
+        // --- ФІНАЛЬНА БИТВА (ЛОГІКА) ---
+        // Використовуємо ту саму логіку з попередньої версії (Спідклік -> Засідка -> Перетягування)
+        let battleState = { active: false, phase: 1, timeLeft: 0, interval: null, p1Clicks: 0, p2Targets: 0, p3Progress: 30 };
 
         function runBattleTimer(onTimeout) {
             clearInterval(battleState.interval);
@@ -669,272 +673,170 @@
             battleState.interval = setInterval(() => {
                 battleState.timeLeft -= 0.1;
                 document.getElementById('battle-timer').innerText = Math.max(0, battleState.timeLeft).toFixed(1) + 's';
-                if (battleState.timeLeft <= 0) {
-                    clearInterval(battleState.interval);
-                    onTimeout();
-                }
+                if (battleState.timeLeft <= 0) { clearInterval(battleState.interval); onTimeout(); }
             }, 100);
         }
 
         function startBattle() {
             battleState.active = true;
             document.getElementById('battle-modal').classList.remove('hidden');
-            startPhase1();
-        }
-
-        // Фаза 1: Спід-клік
-        function startPhase1() {
-            battleState.phase = 1;
-            battleState.timeLeft = 8.0;
-            battleState.p1Clicks = 0;
             
+            battleState.phase = 1; battleState.timeLeft = 8.0; battleState.p1Clicks = 0;
             document.getElementById('battle-phase-1').classList.remove('hidden');
             document.getElementById('battle-phase-2').classList.add('hidden');
             document.getElementById('battle-phase-3').classList.add('hidden');
-            
             document.getElementById('battle-title').innerText = "Фаза 1: Прорив!";
             document.getElementById('battle-desc').innerText = "Прорви ворожу оборону! (40 кліків)";
-            document.getElementById('battle-clicks').innerText = '0';
             document.getElementById('battle-progress-1').style.width = '0%';
-
-            runBattleTimer(() => {
-                if (battleState.p1Clicks < 40) loseBattle("Ви не встигли прорвати оборону!");
-            });
+            
+            runBattleTimer(() => { if(battleState.p1Clicks < 40) loseBattle("Ви не встигли прорвати оборону!"); });
         }
 
         document.getElementById('battle-hit-btn').addEventListener('click', () => {
             if (battleState.phase !== 1 || battleState.timeLeft <= 0) return;
-            
             battleState.p1Clicks++;
             document.getElementById('battle-clicks').innerText = battleState.p1Clicks;
             document.getElementById('battle-progress-1').style.width = `${(battleState.p1Clicks / 40) * 100}%`;
-            
-            const btn = document.getElementById('battle-hit-btn');
-            btn.classList.add('scale-95');
-            setTimeout(() => btn.classList.remove('scale-95'), 50);
-
-            if (battleState.p1Clicks >= 40) {
-                clearInterval(battleState.interval);
-                startPhase2();
-            }
+            if (battleState.p1Clicks >= 40) { clearInterval(battleState.interval); startPhase2(); }
         });
 
-        // Фаза 2: Точність (Міні-гра)
         function startPhase2() {
-            battleState.phase = 2;
-            battleState.timeLeft = 6.0;
-            battleState.p2Targets = 5;
-            
+            battleState.phase = 2; battleState.timeLeft = 6.0; battleState.p2Targets = 5;
             document.getElementById('battle-phase-1').classList.add('hidden');
             document.getElementById('battle-phase-2').classList.remove('hidden');
-            
             document.getElementById('battle-title').innerText = "Фаза 2: Засідка!";
             document.getElementById('battle-desc').innerText = "Знешкодь 5 ворожих розвідників!";
-            
-            const area = document.getElementById('battle-phase-2');
-            area.innerHTML = ''; // Очищаємо попередні
-            
+            const area = document.getElementById('battle-phase-2'); area.innerHTML = '';
             for(let i=0; i<5; i++) {
                 let btn = document.createElement('button');
-                btn.className = "absolute bg-red-600 text-white w-12 h-12 rounded-full shadow-lg border-2 border-red-800 flex items-center justify-center text-xl hover:bg-red-500 transform hover:scale-110 active:scale-95 transition-transform";
+                btn.className = "absolute bg-red-600 text-white w-12 h-12 rounded-full shadow-lg border-2 border-red-800 flex items-center justify-center text-xl hover:bg-red-500";
                 btn.innerHTML = '<i class="fa-solid fa-eye"></i>';
-                // Випадкова позиція всередині блоку
-                btn.style.left = Math.floor(Math.random() * 80) + '%';
-                btn.style.top = Math.floor(Math.random() * 80) + '%';
-                
+                btn.style.left = Math.floor(Math.random() * 80) + '%'; btn.style.top = Math.floor(Math.random() * 80) + '%';
                 btn.onclick = (e) => {
                     if(battleState.phase !== 2 || battleState.timeLeft <= 0) return;
-                    e.target.closest('button').remove();
-                    battleState.p2Targets--;
-                    if(battleState.p2Targets <= 0) {
-                        clearInterval(battleState.interval);
-                        startPhase3();
-                    }
+                    e.target.closest('button').remove(); battleState.p2Targets--;
+                    if(battleState.p2Targets <= 0) { clearInterval(battleState.interval); startPhase3(); }
                 };
                 area.appendChild(btn);
             }
-
-            runBattleTimer(() => {
-                if (battleState.p2Targets > 0) loseBattle("Розвідники доповіли про ваші позиції, вас оточили!");
-            });
+            runBattleTimer(() => { if (battleState.p2Targets > 0) loseBattle("Вас оточили розвідники!"); });
         }
 
-        // Фаза 3: Перетягування (Супротив)
         function startPhase3() {
-            battleState.phase = 3;
-            battleState.timeLeft = 10.0;
-            battleState.p3Progress = 30; // Починаємо з меншості
-            
+            battleState.phase = 3; battleState.timeLeft = 10.0; battleState.p3Progress = 30;
             document.getElementById('battle-phase-2').classList.add('hidden');
             document.getElementById('battle-phase-3').classList.remove('hidden');
-            
             document.getElementById('battle-title').innerText = "Фаза 3: Вирішальна Битва!";
-            document.getElementById('battle-desc').innerText = "Лінія фронту! Перетягни на свій бік!";
+            document.getElementById('battle-desc').innerText = "Перетягни лінію фронту на свій бік!";
             document.getElementById('battle-progress-3').style.width = '30%';
-
-            runBattleTimer(() => {
-                if (battleState.p3Progress < 100) loseBattle("Вороги виявилися витривалішими у фіналі!");
-            });
+            runBattleTimer(() => { if (battleState.p3Progress < 100) loseBattle("Вороги виявилися сильнішими!"); });
         }
 
         document.getElementById('battle-pull-btn').addEventListener('click', () => {
             if (battleState.phase !== 3 || battleState.timeLeft <= 0) return;
-            
-            battleState.p3Progress += 8; // +8% за клік
+            battleState.p3Progress += 8;
             if (battleState.p3Progress >= 100) {
-                battleState.p3Progress = 100;
-                document.getElementById('battle-progress-3').style.width = '100%';
-                clearInterval(battleState.interval);
-                endBattle(true);
+                battleState.p3Progress = 100; document.getElementById('battle-progress-3').style.width = '100%';
+                clearInterval(battleState.interval); endBattle(true);
             } else {
                 document.getElementById('battle-progress-3').style.width = `${battleState.p3Progress}%`;
             }
-            
-            const btn = document.getElementById('battle-pull-btn');
-            btn.classList.add('scale-95');
-            setTimeout(() => btn.classList.remove('scale-95'), 50);
         });
 
         function loseBattle(reason) {
-            battleState.active = false;
-            clearInterval(battleState.interval);
+            battleState.active = false; clearInterval(battleState.interval);
             document.getElementById('battle-modal').classList.add('hidden');
-            
-            let lostCrumbs = Math.floor(state.crumbs * 0.3); // 30% штрафу
-            state.crumbs -= lostCrumbs;
-            
+            let lostCrumbs = Math.floor(state.crumbs * 0.3); state.crumbs -= lostCrumbs;
             document.getElementById('loss-reason').innerText = reason;
             document.getElementById('loss-amount').innerText = lostCrumbs.toLocaleString();
             document.getElementById('loss-modal').classList.remove('hidden');
-            
-            updateUI();
-            saveGame(); // Відразу зберігаємо втрату
+            updateUI(); saveGame();
         }
 
         function endBattle(won) {
-            battleState.active = false;
-            document.getElementById('battle-modal').classList.add('hidden');
+            battleState.active = false; document.getElementById('battle-modal').classList.add('hidden');
             if (won) {
-                state.battleWon = true;
-                document.getElementById('victory-modal').classList.remove('hidden');
-                updateUI();
-                saveGame(); // Зберігаємо перемогу
+                state.battleWon = true; document.getElementById('victory-modal').classList.remove('hidden');
+                updateUI(); saveGame();
             }
         }
 
-        // --- ІГРОВИЙ ЦИКЛ (10 разів на секунду) ---
+        // --- ГОЛОВНІ ЦИКЛИ ---
         setInterval(() => {
-            // 1. Пасивний дохід
             const { cps } = getStats();
-            if (cps > 0) {
+            if (cps !== 0) {
                 state.crumbs += cps / 10;
-                state.totalCrumbs += cps / 10;
+                if(cps > 0) state.totalCrumbs += cps / 10;
+                if(state.crumbs < 0) state.crumbs = 0; // Не йдемо в мінус
                 updateUI();
             }
-
-            // 2. Механіка супротиву Владюсіка (Тягне назад)
-            if (state.vladActive) {
-                state.vladProgress -= 3; // Віднімає 3% кожні 100мс (30% на секунду)
-                if (state.vladProgress < 0) state.vladProgress = 0;
-                els.vladProgress.style.width = `${state.vladProgress}%`;
-            }
-
-            // 3. Віддача у Фінальній Битві (Фаза 3)
             if (battleState.active && battleState.phase === 3) {
-                battleState.p3Progress -= 2.5; // Ворог тисне: -25% на секунду
+                battleState.p3Progress -= 2.5;
                 if (battleState.p3Progress < 0) battleState.p3Progress = 0;
                 document.getElementById('battle-progress-3').style.width = `${battleState.p3Progress}%`;
             }
-
         }, 100);
 
-        // Генератор випадкових подій (перевіряємо кожні 15 секунд)
-        setInterval(() => {
-            // Події з'являються тільки якщо зараз немає інших подій і не активовано Штаб Іллі
-            if (Math.random() < 0.20 && !state.ilyaActive && !state.babaZoyaActive && !state.vladActive && !state.sanyaActive && !state.battleWon) {
-                const rand = Math.random();
-                if (rand < 0.33) {
-                    triggerBabaZoya();
-                } else if (rand < 0.66) {
-                    triggerVlad();
-                } else {
-                    triggerSanya();
-                }
-            }
-        }, 15000);
+        // Перевірка часу кожну хвилину
+        setInterval(checkTimeOfDay, 60000);
 
-        // --- ЗБЕРЕЖЕННЯ ТА ЗАВАНТАЖЕННЯ ---
+        // Випадкові події (Мафія-голуб)
+        setInterval(() => {
+            if (Math.random() < 0.15 && !state.ilyaActive && !state.pigeonActive) triggerPigeon();
+        }, 30000); // Перевірка кожні 30с
+
+        // --- ЗБЕРЕЖЕННЯ ---
         function saveGame() {
             const savedData = {
                 state: {
-                    crumbs: state.crumbs,
-                    totalCrumbs: state.totalCrumbs,
-                    ilyaActive: state.ilyaActive,
-                    battleWon: state.battleWon
+                    crumbs: state.crumbs, totalCrumbs: state.totalCrumbs, 
+                    ilyaActive: state.ilyaActive, battleWon: state.battleWon,
+                    memories: state.memories, unlockedCollectibles: state.unlockedCollectibles
                 },
-                upgradeCounts: {} // Зберігаємо тільки рівні { "swords": 2, "vetal": 1 }
+                upgradeCounts: {}
             };
-            
-            upgrades.forEach(u => {
-                savedData.upgradeCounts[u.id] = u.count;
-            });
-            
-            localStorage.setItem('dvirSave', JSON.stringify(savedData));
-            
+            upgrades.forEach(u => savedData.upgradeCounts[u.id] = u.count);
+            localStorage.setItem('dvirSaveV2', JSON.stringify(savedData));
             const now = new Date();
-            els.saveStatus.innerText = `Збережено о ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+            document.getElementById('save-status').innerText = `Збережено о ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
         }
 
         function loadGame() {
-            const savedStr = localStorage.getItem('dvirSave');
+            const savedStr = localStorage.getItem('dvirSaveV2') || localStorage.getItem('dvirSave'); // Підтримка старих сейвів
             if (savedStr) {
                 try {
                     const savedData = JSON.parse(savedStr);
-                    
-                    // Відновлюємо базові параметри
                     if (savedData.state) {
                         state.crumbs = savedData.state.crumbs || 0;
                         state.totalCrumbs = savedData.state.totalCrumbs || 0;
                         state.ilyaActive = savedData.state.ilyaActive || false;
                         state.battleWon = savedData.state.battleWon || false;
+                        state.memories = savedData.state.memories || 0;
+                        state.unlockedCollectibles = savedData.state.unlockedCollectibles || [];
                     }
-
-                    // Переносимо рівні прокачки (не затираючи нові апгрейди з оновлень)
                     if (savedData.upgradeCounts) {
-                        upgrades.forEach(u => {
-                            u.count = savedData.upgradeCounts[u.id] || 0;
-                        });
+                        upgrades.forEach(u => u.count = savedData.upgradeCounts[u.id] || 0);
                     }
-
-                    // Відновлюємо вигляд Штабу
-                    if (state.ilyaActive) {
-                        setIlyaTheme();
-                    }
-                } catch (e) {
-                    console.error("Помилка завантаження прогресу:", e);
-                }
+                } catch (e) { console.error("Помилка завантаження прогресу:", e); }
             }
+            checkTimeOfDay();
+            updateTheme();
         }
 
-        function resetGame() {
-            if (confirm("Ти дійсно хочеш скинути весь прогрес і почати спочатку?")) {
+        function hardResetGame() {
+            if (confirm("УВАГА! Це зітре АБСОЛЮТНО ВСЕ, включаючи Спогади і Колекцію. Продовжити?")) {
+                localStorage.removeItem('dvirSaveV2');
                 localStorage.removeItem('dvirSave');
                 location.reload();
             }
         }
 
-        // Автозбереження кожні 5 секунд
-        setInterval(saveGame, 5000);
-
-        // --- ІНІЦІАЛІЗАЦІЯ ---
+        // Ініціалізація
         els.mainClickArea.addEventListener('click', handleMainClick);
         els.ilyaUpgradeBtn.addEventListener('click', handleIlyaBtnClick);
-        els.escapeBtn.addEventListener('click', handleEscapeClick);
-
-        // Завантажуємо прогрес перед першим рендером
+        setInterval(saveGame, 5000);
+        
         loadGame();
-
-        // Перший рендер
         renderUpgrades();
         updateUI();
 
